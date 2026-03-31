@@ -5,12 +5,9 @@ DEFCONFIG     := $(CURDIR)/defconfig
 BR_MAKE := $(MAKE) -C $(BUILDROOT_DIR) O=$(OUTPUT_DIR)
 
 # Targets that should auto-save defconfig after running
-CONFIG_TARGETS := menuconfig nconfig xconfig gconfig
+CONFIG_TARGETS := menuconfig nconfig xconfig gconfig linux-menuconfig uboot-menuconfig busybox-menuconfig
 
-# Targets that need a config to exist first
-NEED_CONFIG := $(filter-out %_defconfig $(CONFIG_TARGETS) help,$(MAKECMDGOALS))
-
-.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help
+.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help swu
 
 all: $(OUTPUT_DIR)/.config
 	$(BR_MAKE)
@@ -35,6 +32,14 @@ beaglebone_defconfig: | buildroot-check
 	@echo ""
 	@echo ">>> defconfig updated from stock beaglebone_defconfig."
 
+# Generate .swu update package (rebuild rootfs + package it)
+swu: $(OUTPUT_DIR)/.config
+	$(BR_MAKE)
+	@echo ""
+	@echo "Output:"
+	@echo "  SD card image: $(OUTPUT_DIR)/images/sdcard.img"
+	@echo "  OTA package:   $(OUTPUT_DIR)/images/update.swu"
+
 # Any other buildroot target: pass through
 %: $(OUTPUT_DIR)/.config
 	$(BR_MAKE) $@
@@ -51,9 +56,10 @@ help:
 	@echo ""
 	@echo "  make                - build the system image"
 	@echo "  make menuconfig     - configure (auto-saves defconfig)"
+	@echo "  make linux-menuconfig - configure Linux kernel"
+	@echo "  make swu            - build + generate OTA update package"
 	@echo "  make clean          - clean build output"
 	@echo "  make help           - this message"
 	@echo ""
 	@echo "All standard buildroot targets are supported."
-	@echo "Config targets (menuconfig, nconfig, xconfig, gconfig)"
-	@echo "auto-save defconfig after closing."
+	@echo "Config targets auto-save defconfig after closing."
