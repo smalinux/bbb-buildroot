@@ -2,7 +2,7 @@ BUILDROOT_DIR := $(CURDIR)/buildroot
 OUTPUT_DIR    := $(CURDIR)/output
 DEFCONFIG     := $(CURDIR)/defconfig
 
-BR_MAKE := $(MAKE) -C $(BUILDROOT_DIR) O=$(OUTPUT_DIR)
+BR_MAKE := $(MAKE) -C $(BUILDROOT_DIR) O=$(OUTPUT_DIR) BR2_EXTERNAL=$(CURDIR)
 
 # Targets that should auto-save defconfig after running
 CONFIG_TARGETS := menuconfig nconfig xconfig gconfig linux-menuconfig uboot-menuconfig busybox-menuconfig

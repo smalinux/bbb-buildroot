@@ -289,6 +289,24 @@ The format is: `<component-name> <version>` one per line.
 
 ## Build System Changes
 
+### BR2_EXTERNAL
+
+Buildroot resolves all paths in defconfig relative to its own source tree. Since
+our board files live outside buildroot (in the project root), paths like
+`board/bbb/swupdate.config` would resolve to `buildroot/board/bbb/...` which
+doesn't exist.
+
+The standard buildroot solution is `BR2_EXTERNAL` — a mechanism for keeping
+board customizations outside the buildroot tree. We set this up with:
+
+- `external.desc` — declares the external tree name (`BBB`) and description
+- `external.mk` — empty, required by buildroot
+- `Config.in` — empty, required by buildroot
+
+The Makefile passes `BR2_EXTERNAL=$(CURDIR)` to all buildroot invocations. This
+makes buildroot set `BR2_EXTERNAL_BBB_PATH=/absolute/path/to/project`, which we
+use in defconfig paths like `$(BR2_EXTERNAL_BBB_PATH)/board/bbb/swupdate.config`.
+
 ### defconfig changes
 
 The following buildroot options were enabled in the defconfig:
@@ -296,7 +314,7 @@ The following buildroot options were enabled in the defconfig:
 | Option | Why |
 |--------|-----|
 | `BR2_PACKAGE_SWUPDATE=y` | The OTA update daemon |
-| `BR2_PACKAGE_SWUPDATE_CONFIG="board/bbb/swupdate.config"` | Custom build config with U-Boot handler |
+| `BR2_PACKAGE_SWUPDATE_CONFIG="$(BR2_EXTERNAL_BBB_PATH)/board/bbb/swupdate.config"` | Custom build config with U-Boot handler |
 | `BR2_PACKAGE_SWUPDATE_WEBSERVER=y` | Web UI for uploading updates |
 | `BR2_PACKAGE_SWUPDATE_INSTALL_WEBSITE=y` | Default web UI files |
 | `BR2_PACKAGE_JSON_C=y` | Mandatory dependency of SWUpdate |
@@ -305,9 +323,9 @@ The following buildroot options were enabled in the defconfig:
 | `BR2_PACKAGE_ZLIB=y` | Dependency of libubootenv and compression |
 | `BR2_PACKAGE_LIBCONFIG=y` | Config file parser for swupdate.cfg |
 | `BR2_PACKAGE_HOST_UBOOT_TOOLS=y` | Provides `mkimage` on the host to compile boot.cmd to boot.scr |
-| `BR2_ROOTFS_OVERLAY="board/bbb/rootfs-overlay"` | Install fw_env.config and sw-versions into rootfs |
-| `BR2_ROOTFS_POST_BUILD_SCRIPT="board/bbb/post-build.sh"` | Custom post-build (replaces stock beaglebone script) |
-| `BR2_ROOTFS_POST_IMAGE_SCRIPT="board/bbb/post-image.sh"` | Custom post-image (replaces genimage.sh wrapper) |
+| `BR2_ROOTFS_OVERLAY="$(BR2_EXTERNAL_BBB_PATH)/board/bbb/rootfs-overlay"` | Install fw_env.config and sw-versions into rootfs |
+| `BR2_ROOTFS_POST_BUILD_SCRIPT="$(BR2_EXTERNAL_BBB_PATH)/board/bbb/post-build.sh"` | Custom post-build (replaces stock beaglebone script) |
+| `BR2_ROOTFS_POST_IMAGE_SCRIPT="$(BR2_EXTERNAL_BBB_PATH)/board/bbb/post-image.sh"` | Custom post-image (replaces genimage.sh wrapper) |
 | `BR2_ROOTFS_POST_IMAGE_SCRIPT_ARGS="--swu-version 0.1.0"` | SWU version passed to post-image.sh |
 
 ### post-build.sh
@@ -429,3 +447,6 @@ Added to the top-level Makefile wrapper:
 | `board/bbb/rootfs-overlay/etc/sw-versions` | Records installed software version for SWUpdate version comparison |
 | `defconfig` | Buildroot configuration with SWUpdate and all dependencies enabled |
 | `Makefile` | Top-level wrapper with `make swu` target and auto-save on config targets |
+| `external.desc` | BR2_EXTERNAL tree descriptor (name: BBB) |
+| `external.mk` | BR2_EXTERNAL makefile (empty, required by buildroot) |
+| `Config.in` | BR2_EXTERNAL Kconfig (empty, required by buildroot) |

@@ -78,6 +78,9 @@ make help                # list all targets
 ```
 ├── Makefile                    # wrapper around buildroot
 ├── defconfig                   # board configuration (tracked in git)
+├── external.desc               # BR2_EXTERNAL tree descriptor
+├── external.mk                 # BR2_EXTERNAL makefile (empty)
+├── Config.in                   # BR2_EXTERNAL kconfig (empty)
 ├── board/bbb/
 │   ├── boot.cmd                # U-Boot A/B boot script
 │   ├── genimage.cfg            # A/B partition layout
@@ -90,6 +93,8 @@ make help                # list all targets
 │       └── etc/
 │           ├── fw_env.config   # U-Boot env access config
 │           └── sw-versions     # installed software version
+├── doc/
+│   └── ota-implementation.md   # detailed OTA design document
 ├── buildroot/                  # buildroot submodule
 └── output/                     # build output (gitignored)
 ```
