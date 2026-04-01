@@ -33,7 +33,7 @@ make clean              # clean build output
 - `defconfig` — full buildroot .config (tracked in git, `output/` is gitignored)
 - `board/bbb/system.conf` — RAUC system configuration (slot definitions, bootloader backend, keyring)
 - `board/bbb/rauc-keys/` — development signing keypair for RAUC bundles
-- `board/bbb/rootfs-overlay/etc/fw_env.config` — U-Boot env location on MMC (offset 0x260000)
+- `board/bbb/rootfs-overlay/etc/fw_env.config` — U-Boot env location on MMC (offset 0x200000)
 
 **Build flow**: `post-build.sh` installs RAUC system.conf, keyring cert, and boot-confirm script into rootfs. `post-image.sh` compiles `boot.scr`, runs `genimage.sh` for sdcard.img, creates a signed RAUC bundle using `host-rauc`.
 
@@ -42,7 +42,7 @@ make clean              # clean build output
 - The `defconfig` is a full `.config`, not a minimal defconfig. The Makefile copies it directly and runs `olddefconfig`.
 - When adding board files referenced by defconfig, paths must use `$(BR2_EXTERNAL_BBB_PATH)/` prefix.
 - RAUC bundles must be signed. Development keys are in `board/bbb/rauc-keys/`. For production, use a proper PKI.
-- `fw_env.config` offset (0x260000) must match U-Boot's compiled `CONFIG_ENV_OFFSET` for am335x_evm.
+- `fw_env.config` offset (0x200000) must match U-Boot's compiled `CONFIG_ENV_OFFSET`. The env lives in the pre-partition gap (0-4MB). genimage.cfg sets boot partition at 4MB offset to leave room for raw U-Boot binaries + env.
 - Bundle version is set in `board/bbb/post-image.sh` via `BUNDLE_VERSION` variable.
 
 ## Workflow Rules

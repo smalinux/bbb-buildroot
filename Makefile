@@ -7,7 +7,7 @@ BR_MAKE := $(MAKE) -C $(BUILDROOT_DIR) O=$(OUTPUT_DIR) BR2_EXTERNAL=$(CURDIR)
 # Targets that should auto-save defconfig after running
 CONFIG_TARGETS := menuconfig nconfig xconfig gconfig linux-menuconfig uboot-menuconfig busybox-menuconfig
 
-.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle
+.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild
 
 all: $(OUTPUT_DIR)/.config
 	$(BR_MAKE)
@@ -40,6 +40,15 @@ bundle: $(OUTPUT_DIR)/.config
 	@echo "  SD card image: $(OUTPUT_DIR)/images/sdcard.img"
 	@echo "  OTA bundle:    $(OUTPUT_DIR)/images/update.raucb"
 
+# Wipe target dir and rebuild — gives a clean rootfs without recompiling.
+# Use after disabling packages in menuconfig.
+# Must also wipe .stamp_target_installed so buildroot re-runs package
+# install steps (including skeleton which creates /etc/inittab etc).
+rebuild:
+	rm -rf $(OUTPUT_DIR)/target
+	find $(OUTPUT_DIR)/build -name '.stamp_target_installed' -delete 2>/dev/null; true
+	$(MAKE) all
+
 # Any other buildroot target: pass through
 %: $(OUTPUT_DIR)/.config
 	$(BR_MAKE) $@
@@ -58,7 +67,8 @@ help:
 	@echo "  make menuconfig     - configure (auto-saves defconfig)"
 	@echo "  make linux-menuconfig - configure Linux kernel"
 	@echo "  make bundle         - build + generate RAUC OTA bundle"
-	@echo "  make clean          - clean build output"
+	@echo "  make rebuild        - clean rootfs + rebuild (no recompile)"
+	@echo "  make clean          - full clean (recompiles everything)"
 	@echo "  make help           - this message"
 	@echo ""
 	@echo "All standard buildroot targets are supported."
