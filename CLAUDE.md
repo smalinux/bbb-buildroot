@@ -26,7 +26,7 @@ make clean              # clean build output
 - SD card has 4 partitions: boot (FAT) + rootfsA (ext4) + rootfsB (ext4) + data (ext4)
 - `board/bbb/boot.cmd` is the U-Boot script that selects active slot via RAUC bootchooser env vars (`BOOT_ORDER`, `BOOT_A_LEFT`, `BOOT_B_LEFT`)
 - RAUC installs the bundle to the inactive slot, updates `BOOT_ORDER` to prefer the new slot
-- On successful boot, `S99rauc-mark-good` init script calls `rauc status mark-good`
+- On successful boot, `rauc-mark-good.service` systemd unit calls `rauc status mark-good`
 - After 3 failed boots (attempts decremented per boot), U-Boot falls back to the other slot
 
 **Key config files**:
@@ -35,7 +35,7 @@ make clean              # clean build output
 - `board/bbb/rauc-keys/` — development signing keypair for RAUC bundles
 - `board/bbb/rootfs-overlay/etc/fw_env.config` — U-Boot env location on MMC (offset 0x200000)
 
-**Build flow**: `post-build.sh` installs RAUC system.conf, keyring cert, and boot-confirm script into rootfs. `post-image.sh` compiles `boot.scr`, runs `genimage.sh` for sdcard.img, creates a signed RAUC bundle using `host-rauc`.
+**Build flow**: `post-build.sh` installs RAUC system.conf, keyring cert, and systemd service units (ntpd, rauc-mark-good) into rootfs. `post-image.sh` compiles `boot.scr`, runs `genimage.sh` for sdcard.img, creates a signed RAUC bundle using `host-rauc`.
 
 ## Important Constraints
 
@@ -49,3 +49,21 @@ make clean              # clean build output
 
 - **Document every step**: For each new feature or configuration step, create a dedicated documentation file under `doc/` explaining what was done and how it works. Each doc should be self-contained and cover the what, why, and how.
 - **Update the changelog**: Always add a one-liner entry to `CHANGELOG.md` under the `[Unreleased]` section for every change made to the project.
+- **Write tests for every feature**: When adding or changing a feature, write a labgrid-based integration test under `tests/` that verifies the feature works on the real hardware. Tests run via pytest against the BeagleBone Black (slave) from the host (master). See `tests/README.md` for setup and `tests/conftest.py` for fixtures.
+
+## Testing
+
+```bash
+# Setup (one-time)
+python3 -m venv tests/.venv
+source tests/.venv/bin/activate
+pip install -r tests/requirements.txt
+
+# Run all tests against the BBB
+pytest tests/ --lg-env tests/env.yaml
+
+# Run a specific test file
+pytest tests/test_systemd.py --lg-env tests/env.yaml -v
+```
+
+Tests use [labgrid](https://labgrid.readthedocs.io/) to SSH into the BBB and verify system-level features (systemd services, RAUC slots, partitions, etc.).
