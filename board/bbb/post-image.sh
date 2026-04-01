@@ -36,8 +36,11 @@ filename=rootfs.ext4
 type=ext4
 EOF
 
-# Link rootfs image
-ln -sf "${BINARIES_DIR}/rootfs.ext4" "${RAUC_DIR}/rootfs.ext4"
+# Copy rootfs image (RAUC rejects absolute symlinks in bundle contents)
+cp "${BINARIES_DIR}/rootfs.ext4" "${RAUC_DIR}/rootfs.ext4"
+
+# Remove old bundle if it exists (rauc refuses to overwrite)
+rm -f "${BINARIES_DIR}/update.raucb"
 
 # Build RAUC bundle (signed with dev key)
 "${HOST_DIR:-$(dirname "$0")/../../output/host}/bin/rauc" bundle \
