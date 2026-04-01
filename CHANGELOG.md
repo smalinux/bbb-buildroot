@@ -13,3 +13,4 @@ All notable changes to this project will be documented in this file.
 - Restore kernel console loglevel to 7 (debug) for full boot diagnostics
 - Increase rootfs ext4 size from 60M to 256M for development headroom
 - Add Dropbear SSH server for remote access to the BeagleBone Black
+- Add reset.sh for USB power-cycling the BBB via uhubctl (auto-discovers smart hubs)
