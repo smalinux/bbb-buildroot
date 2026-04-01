@@ -1,0 +1,4 @@
+CONFIG_SQUASHFS=y
+# Suppress verbose kernel messages (orphan inode dumps during RAUC install).
+# Default is 7 (KERN_DEBUG). 4 = KERN_WARNING: only warnings and above.
+CONFIG_CONSOLE_LOGLEVEL_DEFAULT=4
