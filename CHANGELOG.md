@@ -15,3 +15,4 @@ All notable changes to this project will be documented in this file.
 - Add Dropbear SSH server for remote access to the BeagleBone Black
 - Add reset.sh for USB power-cycling the BBB via uhubctl (auto-discovers smart hubs)
 - Enable RAUC adaptive updates (block-hash-index) with HTTP streaming and verity bundles
+- Switch init system from BusyBox init to systemd (with kernel config, service units)

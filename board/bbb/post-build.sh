@@ -21,34 +21,50 @@ grep -q '/data' "${TARGET_DIR}/etc/fstab" 2>/dev/null || \
     echo '/dev/mmcblk0p4	/data	ext4	defaults,noatime	0	2' >> "${TARGET_DIR}/etc/fstab"
 install -m 0755 -d "${TARGET_DIR}/data/rauc"
 
-# NTP time sync — run ntpd to set clock early (before RAUC cert validation)
-cat > "${TARGET_DIR}/etc/init.d/S49ntp" << 'INITEOF'
-#!/bin/sh
-case "$1" in
-    start)
-        echo "Syncing clock via NTP..."
-        ntpd -q -p pool.ntp.org 2>/dev/null || true
-        ntpd -p pool.ntp.org
-        ;;
-    stop)
-        killall ntpd 2>/dev/null || true
-        ;;
-esac
-INITEOF
-chmod 0755 "${TARGET_DIR}/etc/init.d/S49ntp"
+# Ensure systemd wants directory exists
+install -m 0755 -d "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants"
 
-# Confirm boot on successful startup (mark slot as good)
-# This runs at the end of init, telling RAUC + U-Boot the boot succeeded
-install -m 0755 -d "${TARGET_DIR}/etc/init.d"
-cat > "${TARGET_DIR}/etc/init.d/S99rauc-mark-good" << 'INITEOF'
-#!/bin/sh
-case "$1" in
-    start)
-        if fw_printenv BOOT_ORDER 2>/dev/null | grep -q "BOOT_ORDER="; then
-            echo "Marking current slot as good..."
-            rauc status mark-good
-        fi
-        ;;
-esac
-INITEOF
-chmod 0755 "${TARGET_DIR}/etc/init.d/S99rauc-mark-good"
+# --- systemd service: NTP time sync ---
+# Replaces the old S49ntp SysV init script.
+# Uses busybox ntpd (systemd-timesyncd is an alternative if enabled).
+install -m 0644 -D /dev/stdin "${TARGET_DIR}/usr/lib/systemd/system/ntpd.service" << 'EOF'
+[Unit]
+Description=NTP time sync (BusyBox ntpd)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=forking
+ExecStartPre=-/usr/sbin/ntpd -q -p pool.ntp.org
+ExecStart=/usr/sbin/ntpd -p pool.ntp.org
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+ln -sf /usr/lib/systemd/system/ntpd.service \
+    "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants/ntpd.service"
+
+# --- systemd service: RAUC mark-good ---
+# Replaces the old S99rauc-mark-good SysV init script.
+# Marks the current boot slot as good once the system reaches multi-user.
+install -m 0644 -D /dev/stdin "${TARGET_DIR}/usr/lib/systemd/system/rauc-mark-good.service" << 'EOF'
+[Unit]
+Description=Mark current RAUC slot as good
+After=multi-user.target
+ConditionPathIsReadWrite=/dev/mmcblk0
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'fw_printenv BOOT_ORDER 2>/dev/null && rauc status mark-good'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
+EOF
+ln -sf /usr/lib/systemd/system/rauc-mark-good.service \
+    "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants/rauc-mark-good.service"
+
+# Remove any leftover SysV init scripts (in case of upgrade from busybox init)
+rm -f "${TARGET_DIR}/etc/init.d/S49ntp"
+rm -f "${TARGET_DIR}/etc/init.d/S99rauc-mark-good"
