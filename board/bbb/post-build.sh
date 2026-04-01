@@ -15,6 +15,22 @@ install -m 0644 -D "${BOARD_DIR}/rauc-keys/development-1.cert.pem" \
 install -m 0644 -D "${BOARD_DIR}/rootfs-overlay/etc/fw_env.config" \
     "${TARGET_DIR}/etc/fw_env.config"
 
+# NTP time sync — run ntpd to set clock early (before RAUC cert validation)
+cat > "${TARGET_DIR}/etc/init.d/S49ntp" << 'INITEOF'
+#!/bin/sh
+case "$1" in
+    start)
+        echo "Syncing clock via NTP..."
+        ntpd -q -p pool.ntp.org 2>/dev/null || true
+        ntpd -p pool.ntp.org
+        ;;
+    stop)
+        killall ntpd 2>/dev/null || true
+        ;;
+esac
+INITEOF
+chmod 0755 "${TARGET_DIR}/etc/init.d/S49ntp"
+
 # Confirm boot on successful startup (mark slot as good)
 # This runs at the end of init, telling RAUC + U-Boot the boot succeeded
 install -m 0755 -d "${TARGET_DIR}/etc/init.d"
