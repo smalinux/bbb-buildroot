@@ -192,11 +192,11 @@ S02klogd       — start kernel log daemon
 S20urandom     — seed random number generator
 S40network     — bring up lo and eth0 (DHCP)
 ...
-S80swupdate    — start SWUpdate daemon (needs network for web UI)
+S99rauc-mark-good — confirm current RAUC slot as good
 ```
 
-S40network runs before S80swupdate, ensuring the network is available for
-SWUpdate's web interface on port 8080.
+S40network runs before other services, ensuring the network is available for
+SSH access and RAUC bundle transfers.
 
 ### DHCP client
 
@@ -257,7 +257,7 @@ The full sequence from power-on to a working network connection:
     d. Receives DHCP OFFER/ACK
     e. Configures IP, gateway, DNS
 11. eth0 is up with an IP address
-12. S80swupdate starts, binds web UI to 0.0.0.0:8080
+12. S99rauc-mark-good confirms the current boot slot
 ```
 
 ---
@@ -385,4 +385,4 @@ mdev (the default in this build), classic names (`eth0`) are used.
 | `eth0` exists, carrier=1, no IP | DHCP server unreachable | Try `udhcpc -i eth0` manually, or use static IP |
 | `eth0` named `end0` instead | Predictable interface naming | Update `BR2_SYSTEM_DHCP` to `"end0"` |
 | Network up but no internet | Missing default route | Check `ip route`, verify gateway config |
-| SWUpdate web UI unreachable | Network not up before S80swupdate | Verify S40network runs successfully |
+| Cannot SSH to board for RAUC install | Network not up | Verify S40network runs successfully |

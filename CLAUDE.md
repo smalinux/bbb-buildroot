@@ -4,18 +4,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Embedded Linux build system for BeagleBone Black using Buildroot with SWUpdate OTA (A/B partition scheme). The project wraps buildroot as a git submodule and uses `BR2_EXTERNAL` to keep board customizations outside the buildroot tree.
+Embedded Linux build system for BeagleBone Black using Buildroot with RAUC OTA (A/B partition scheme). The project wraps buildroot as a git submodule and uses `BR2_EXTERNAL` to keep board customizations outside the buildroot tree.
 
 ## Build Commands
 
 ```bash
-make                    # full build (sdcard.img + update.swu)
+make                    # full build (sdcard.img + update.raucb)
 make menuconfig         # configure buildroot (auto-saves defconfig on close)
 make linux-menuconfig   # configure Linux kernel (auto-saves defconfig)
 make uboot-menuconfig   # configure U-Boot (auto-saves defconfig)
-make swu                # build + generate OTA update package
+make bundle             # build + generate RAUC OTA bundle
 make clean              # clean build output
-./deploy.sh <board-ip>  # build, upload .swu via SWUpdate web UI, reboot board
+./deploy.sh <board-ip>  # build, upload .raucb via SSH, install with rauc, reboot
 ```
 
 ## Architecture
@@ -24,23 +24,28 @@ make clean              # clean build output
 
 **A/B OTA update flow**:
 - SD card has 4 partitions: boot (FAT) + rootfsA (ext4) + rootfsB (ext4) + data (ext4)
-- `board/bbb/boot.cmd` is the U-Boot script that selects active partition via `root_part` env var
-- SWUpdate writes to the inactive partition, flips `root_part`, sets `upgrade_available=1`
-- On successful boot, `S99swupdate-confirm` init script clears `upgrade_available`
-- After 3 failed boots (`bootlimit`), U-Boot rolls back to previous partition
+- `board/bbb/boot.cmd` is the U-Boot script that selects active slot via RAUC bootchooser env vars (`BOOT_ORDER`, `BOOT_A_LEFT`, `BOOT_B_LEFT`)
+- RAUC installs the bundle to the inactive slot, updates `BOOT_ORDER` to prefer the new slot
+- On successful boot, `S99rauc-mark-good` init script calls `rauc status mark-good`
+- After 3 failed boots (attempts decremented per boot), U-Boot falls back to the other slot
 
 **Key config files**:
 - `defconfig` — full buildroot .config (tracked in git, `output/` is gitignored)
-- `board/bbb/swupdate.config` — kconfig for SWUpdate build (U-Boot handler, raw handler, web server)
-- `board/bbb/sw-description` — SWUpdate image descriptor with `@@SWU_VERSION@@` placeholder
+- `board/bbb/system.conf` — RAUC system configuration (slot definitions, bootloader backend, keyring)
+- `board/bbb/rauc-keys/` — development signing keypair for RAUC bundles
 - `board/bbb/rootfs-overlay/etc/fw_env.config` — U-Boot env location on MMC (offset 0x260000)
 
-**Build flow**: `post-build.sh` installs runtime configs + boot-confirm script into rootfs. `post-image.sh` compiles `boot.scr`, runs `genimage.sh` for sdcard.img, packages `update.swu` (cpio archive with sw-description first).
+**Build flow**: `post-build.sh` installs RAUC system.conf, keyring cert, and boot-confirm script into rootfs. `post-image.sh` compiles `boot.scr`, runs `genimage.sh` for sdcard.img, creates a signed RAUC bundle using `host-rauc`.
 
 ## Important Constraints
 
 - The `defconfig` is a full `.config`, not a minimal defconfig. The Makefile copies it directly and runs `olddefconfig`.
 - When adding board files referenced by defconfig, paths must use `$(BR2_EXTERNAL_BBB_PATH)/` prefix.
-- The `.swu` cpio archive requires `sw-description` as the first file — ordering matters.
+- RAUC bundles must be signed. Development keys are in `board/bbb/rauc-keys/`. For production, use a proper PKI.
 - `fw_env.config` offset (0x260000) must match U-Boot's compiled `CONFIG_ENV_OFFSET` for am335x_evm.
-- Version in `board/bbb/sw-description` and `board/bbb/rootfs-overlay/etc/sw-versions` must be bumped before each OTA update — SWUpdate rejects equal/older versions.
+- Bundle version is set in `board/bbb/post-image.sh` via `BUNDLE_VERSION` variable.
+
+## Workflow Rules
+
+- **Document every step**: For each new feature or configuration step, create a dedicated documentation file under `doc/` explaining what was done and how it works. Each doc should be self-contained and cover the what, why, and how.
+- **Update the changelog**: Always add a one-liner entry to `CHANGELOG.md` under the `[Unreleased]` section for every change made to the project.

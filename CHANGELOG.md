@@ -4,5 +4,5 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- Add SWUpdate OTA with A/B partition scheme for reliable over-the-air updates
+- Replace SWUpdate with RAUC for A/B OTA updates (signed bundles, U-Boot bootchooser)
 - Add Dropbear SSH server for remote access to the BeagleBone Black

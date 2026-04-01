@@ -4,11 +4,11 @@ set -eu
 BOARD_DIR="$(dirname "$0")"
 BINARIES_DIR="${BINARIES_DIR:-${0%/*}/../../output/images}"
 
-# Parse args: --swu-version VERSION
-SWU_VERSION="0.1.0"
+# Parse args: --bundle-version VERSION
+BUNDLE_VERSION="0.1.0"
 while [ $# -gt 0 ]; do
     case "$1" in
-        --swu-version) SWU_VERSION="$2"; shift 2 ;;
+        --bundle-version) BUNDLE_VERSION="$2"; shift 2 ;;
         *) shift ;;
     esac
 done
@@ -19,22 +19,34 @@ mkimage -C none -A arm -T script -d "${BOARD_DIR}/boot.cmd" "${BINARIES_DIR}/boo
 # Generate SD card image
 support/scripts/genimage.sh -c "${BOARD_DIR}/genimage.cfg"
 
-# Generate .swu update package
-echo "Generating SWUpdate package (version ${SWU_VERSION})..."
-SWU_DIR="${BINARIES_DIR}/swu-work"
-rm -rf "${SWU_DIR}"
-mkdir -p "${SWU_DIR}"
+# Generate RAUC update bundle
+echo "Generating RAUC bundle (version ${BUNDLE_VERSION})..."
+RAUC_DIR="${BINARIES_DIR}/rauc-work"
+rm -rf "${RAUC_DIR}"
+mkdir -p "${RAUC_DIR}"
 
-# Create sw-description with version substituted
-sed "s/@@SWU_VERSION@@/${SWU_VERSION}/" "${BOARD_DIR}/sw-description" > "${SWU_DIR}/sw-description"
+# Create RAUC manifest
+cat > "${RAUC_DIR}/manifest.raucm" << EOF
+[update]
+compatible=beaglebone-black
+version=${BUNDLE_VERSION}
+
+[image.rootfs]
+filename=rootfs.ext4
+type=ext4
+EOF
 
 # Link rootfs image
-ln -sf "${BINARIES_DIR}/rootfs.ext4" "${SWU_DIR}/rootfs.ext4"
+ln -sf "${BINARIES_DIR}/rootfs.ext4" "${RAUC_DIR}/rootfs.ext4"
 
-# Build .swu (cpio archive, sw-description MUST be first)
-(cd "${SWU_DIR}" && echo sw-description rootfs.ext4 | tr ' ' '\n' | cpio -ov -H crc > "${BINARIES_DIR}/update.swu")
+# Build RAUC bundle (signed with dev key)
+"${HOST_DIR:-$(dirname "$0")/../../output/host}/bin/rauc" bundle \
+    --cert="${BOARD_DIR}/rauc-keys/development-1.cert.pem" \
+    --key="${BOARD_DIR}/rauc-keys/development-1.key.pem" \
+    "${RAUC_DIR}" \
+    "${BINARIES_DIR}/update.raucb"
 
-rm -rf "${SWU_DIR}"
+rm -rf "${RAUC_DIR}"
 
 echo ""
-echo "OTA update package: ${BINARIES_DIR}/update.swu"
+echo "OTA update bundle: ${BINARIES_DIR}/update.raucb"

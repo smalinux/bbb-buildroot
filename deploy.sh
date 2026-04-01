@@ -7,22 +7,25 @@ if [ -z "$1" ]; then
 fi
 
 BOARD_IP="$1"
-SWU_FILE="output/images/update.swu"
+BUNDLE_FILE="output/images/update.raucb"
 
 # Build
-echo "Building update package..."
-make swu
+echo "Building update bundle..."
+make
 
-# Check .swu exists
-if [ ! -f "$SWU_FILE" ]; then
-    echo "Error: $SWU_FILE not found"
+# Check bundle exists
+if [ ! -f "$BUNDLE_FILE" ]; then
+    echo "Error: $BUNDLE_FILE not found"
     exit 1
 fi
 
-# Upload
+# Upload and install
 echo ""
-echo "Uploading to ${BOARD_IP}:8080..."
-curl -f -F "file=@${SWU_FILE}" "http://${BOARD_IP}:8080/upload"
+echo "Uploading bundle to ${BOARD_IP}..."
+scp "$BUNDLE_FILE" root@"${BOARD_IP}":/tmp/update.raucb
+
+echo "Installing bundle..."
+ssh root@"${BOARD_IP}" rauc install /tmp/update.raucb
 
 # Reboot
 echo ""

@@ -1,40 +1,47 @@
-# A/B boot script for BeagleBone Black with SWUpdate
+# A/B boot script for BeagleBone Black with RAUC
 #
-# U-Boot env variables used:
-#   root_part   - active rootfs partition: 2=A (default), 3=B
-#   upgrade_available - set to 1 by SWUpdate after installing update
-#   bootcount   - incremented each boot when upgrade_available=1
-#   bootlimit   - max boot attempts before rollback (default 3)
+# U-Boot env variables used (RAUC bootchooser):
+#   BOOT_ORDER  - slot priority: "A B" or "B A"
+#   BOOT_A_LEFT - remaining boot attempts for slot A
+#   BOOT_B_LEFT - remaining boot attempts for slot B
 
-echo "=== SWUpdate A/B Boot ==="
+echo "=== RAUC A/B Boot ==="
 
 # Defaults
-if test -z "${root_part}"; then setenv root_part 2; fi
-if test -z "${bootlimit}"; then setenv bootlimit 3; fi
-if test -z "${bootcount}"; then setenv bootcount 0; fi
-if test -z "${upgrade_available}"; then setenv upgrade_available 0; fi
+if test -z "${BOOT_ORDER}"; then setenv BOOT_ORDER "A B"; fi
+if test -z "${BOOT_A_LEFT}"; then setenv BOOT_A_LEFT 3; fi
+if test -z "${BOOT_B_LEFT}"; then setenv BOOT_B_LEFT 3; fi
 
-# Bootcount rollback logic
-if test "${upgrade_available}" = "1"; then
-    setexpr bootcount ${bootcount} + 1
-    saveenv
-
-    if test ${bootcount} -gt ${bootlimit}; then
-        echo "Boot limit reached! Rolling back..."
-        if test "${root_part}" = "2"; then
-            setenv root_part 3
-        else
+# Select slot: try each in BOOT_ORDER, skip if no attempts left
+setenv boot_slot ""
+for slot in ${BOOT_ORDER}; do
+    if test -z "${boot_slot}"; then
+        if test "${slot}" = "A" && test ${BOOT_A_LEFT} -gt 0; then
+            setenv boot_slot A
             setenv root_part 2
+            setexpr BOOT_A_LEFT ${BOOT_A_LEFT} - 1
+        elif test "${slot}" = "B" && test ${BOOT_B_LEFT} -gt 0; then
+            setenv boot_slot B
+            setenv root_part 3
+            setexpr BOOT_B_LEFT ${BOOT_B_LEFT} - 1
         fi
-        setenv upgrade_available 0
-        setenv bootcount 0
-        saveenv
     fi
+done
+
+if test -z "${boot_slot}"; then
+    echo "No bootable slot found! Resetting to defaults..."
+    setenv BOOT_ORDER "A B"
+    setenv BOOT_A_LEFT 3
+    setenv BOOT_B_LEFT 3
+    setenv boot_slot A
+    setenv root_part 2
 fi
 
-echo "Booting from partition ${root_part}"
+saveenv
 
-setenv bootargs console=ttyS0,115200n8 root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait
+echo "Booting slot ${boot_slot} (partition ${root_part})"
+
+setenv bootargs console=ttyS0,115200n8 root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait rauc.slot=${boot_slot}
 
 load mmc 0:1 ${kernel_addr_r} zImage
 load mmc 0:1 ${fdt_addr_r} am335x-boneblack.dtb
