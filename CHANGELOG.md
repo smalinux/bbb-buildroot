@@ -17,3 +17,4 @@ All notable changes to this project will be documented in this file.
 - Enable RAUC adaptive updates (block-hash-index) with HTTP streaming and verity bundles
 - Switch init system from BusyBox init to systemd (with kernel config, service units)
 - Add labgrid integration test suite for systemd verification on real hardware
+- Add labgrid integration tests for RAUC OTA (slots, bootchooser, config, adaptive data)
