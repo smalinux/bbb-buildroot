@@ -60,13 +60,13 @@ if [ -f "$CONF" ]; then
     echo "    (delete ${CONF} to re-discover)"
     echo ""
     echo "==> Power OFF"
-    sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a off
+    sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a off || true
     echo ""
     echo "==> Waiting ${PAUSE_SEC}s..."
     sleep "$PAUSE_SEC"
     echo ""
     echo "==> Power ON"
-    sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a on
+    sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a on || true
     echo ""
     echo "==> Done."
     exit 0
@@ -142,7 +142,7 @@ echo "==> Saved config to ${CONF}"
 # Power cycle
 echo ""
 echo "==> Power OFF"
-sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a off
+sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a off || true
 
 echo ""
 echo "==> Waiting ${PAUSE_SEC}s..."
@@ -150,7 +150,7 @@ sleep "$PAUSE_SEC"
 
 echo ""
 echo "==> Power ON"
-sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a on
+sudo uhubctl -l "$HUB_LOC" -p "$HUB_PORT" -a on || true
 
 echo ""
 echo "==> Done. USB port power-cycled."
