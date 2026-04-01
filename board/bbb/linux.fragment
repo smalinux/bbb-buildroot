@@ -1,3 +1,5 @@
 CONFIG_SQUASHFS=y
 # Default console loglevel: 7 = KERN_DEBUG (show all messages)
 CONFIG_CONSOLE_LOGLEVEL_DEFAULT=7
+# NBD (Network Block Device) — required by RAUC HTTP streaming
+CONFIG_BLK_DEV_NBD=y

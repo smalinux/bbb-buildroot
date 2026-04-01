@@ -15,6 +15,12 @@ install -m 0644 -D "${BOARD_DIR}/rauc-keys/development-1.cert.pem" \
 install -m 0644 -D "${BOARD_DIR}/rootfs-overlay/etc/fw_env.config" \
     "${TARGET_DIR}/etc/fw_env.config"
 
+# Mount data partition (persistent storage for RAUC adaptive update indices)
+install -m 0755 -d "${TARGET_DIR}/data"
+grep -q '/data' "${TARGET_DIR}/etc/fstab" 2>/dev/null || \
+    echo '/dev/mmcblk0p4	/data	ext4	defaults,noatime	0	2' >> "${TARGET_DIR}/etc/fstab"
+install -m 0755 -d "${TARGET_DIR}/data/rauc"
+
 # NTP time sync — run ntpd to set clock early (before RAUC cert validation)
 cat > "${TARGET_DIR}/etc/init.d/S49ntp" << 'INITEOF'
 #!/bin/sh

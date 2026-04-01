@@ -34,6 +34,7 @@ version=${BUNDLE_VERSION}
 [image.rootfs]
 filename=rootfs.ext4
 type=ext4
+adaptive=block-hash-index
 EOF
 
 # Copy rootfs image (RAUC rejects absolute symlinks in bundle contents)
@@ -44,8 +45,10 @@ rm -f "${BINARIES_DIR}/update.raucb"
 
 # Build RAUC bundle (signed with dev key)
 "${HOST_DIR:-$(dirname "$0")/../../output/host}/bin/rauc" bundle \
+    --signing-keyring="${BOARD_DIR}/rauc-keys/development-1.cert.pem" \
     --cert="${BOARD_DIR}/rauc-keys/development-1.cert.pem" \
     --key="${BOARD_DIR}/rauc-keys/development-1.key.pem" \
+    --mksquashfs-args="-b 64k" \
     "${RAUC_DIR}" \
     "${BINARIES_DIR}/update.raucb"
 
