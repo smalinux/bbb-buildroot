@@ -20,3 +20,4 @@ All notable changes to this project will be documented in this file.
 - Add labgrid integration tests for RAUC OTA (slots, bootchooser, config, adaptive data)
 - Fix networking: add systemd-networkd config for end0 (DHCP)
 - Replace custom ntpd service with systemd-timesyncd (built-in)
+- Document RAUC A/B rollback procedure in README (manual + automatic)

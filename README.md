@@ -153,6 +153,68 @@ ssh root@<beaglebone-ip> reboot
 
 On successful boot, the new slot is marked as good. If the new image fails to boot 3 times, U-Boot rolls back automatically.
 
+### Rollback to the previous version
+
+RAUC keeps the previous working rootfs on the inactive slot. You can switch
+back at any time:
+
+```bash
+# Check which slot is booted and which is inactive
+rauc status
+```
+
+```
+=== Slot States ===
+x [rootfs.1] (/dev/mmcblk0p3, ext4, booted)
+      bootname: B
+      boot status: good
+
+o [rootfs.0] (/dev/mmcblk0p2, ext4, inactive)
+      bootname: A
+      boot status: good
+```
+
+The `x` marks the currently booted slot, `o` marks the inactive one. To roll
+back to the inactive slot:
+
+```bash
+# Tell U-Boot to boot the other slot next
+fw_setenv BOOT_ORDER "A B"    # put the desired slot first
+reboot
+```
+
+After running `fw_setenv`, `rauc status` confirms the switch before rebooting:
+
+```
+=== Bootloader ===
+Activated: rootfs.0 (A)       # ← next boot will use slot A
+
+=== Slot States ===
+o [rootfs.1] (/dev/mmcblk0p3, ext4, booted)    # still running on B
+      bootname: B
+      boot status: good
+
+x [rootfs.0] (/dev/mmcblk0p2, ext4, inactive)  # ← will boot this next
+      bootname: A
+      boot status: good
+```
+
+After reboot, the system runs from slot A. The `rauc-mark-good` service marks
+it as good automatically.
+
+#### Automatic rollback (no intervention needed)
+
+If an update breaks the system badly enough that it can't boot, U-Boot handles
+rollback automatically:
+
+1. Each slot has 3 boot attempts (`BOOT_A_LEFT` / `BOOT_B_LEFT`)
+2. U-Boot decrements the counter on each boot
+3. `rauc-mark-good.service` resets the counter to 3 on successful boot
+4. If a slot fails 3 times in a row, U-Boot switches to the other slot
+
+This means a bricked update recovers itself after 3 power cycles — no serial
+console or manual intervention required.
+
 ### Version bumping
 
 Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bundle`.
@@ -167,11 +229,11 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 ├── Config.in                   # BR2_EXTERNAL kconfig (empty)
 ├── board/bbb/
 │   ├── boot.cmd                # U-Boot A/B boot script (RAUC bootchooser)
-│   ├── busybox.fragment        # BusyBox config additions (ntpd)
-│   ├── linux.fragment          # kernel config additions (SquashFS)
+│   ├── busybox.fragment        # BusyBox config additions
+│   ├── linux.fragment          # kernel config additions (SquashFS, NBD, systemd)
 │   ├── uboot.fragment          # U-Boot config additions (raw MMC env, setexpr)
 │   ├── genimage.cfg            # A/B partition layout
-│   ├── post-build.sh           # rootfs post-build hooks
+│   ├── post-build.sh           # rootfs post-build hooks (systemd units, network)
 │   ├── post-image.sh           # image generation + RAUC bundle packaging
 │   ├── system.conf             # RAUC system configuration
 │   ├── rauc-keys/              # development signing keys
@@ -181,6 +243,8 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 │       └── etc/
 │           └── fw_env.config   # U-Boot env access config
 ├── deploy.sh                   # build + upload + install OTA bundle
+├── reset.sh                    # USB power-cycle BBB via uhubctl
+├── tests/                      # labgrid integration tests (pytest)
 ├── doc/                        # documentation
 ├── buildroot/                  # buildroot submodule
 └── output/                     # build output (gitignored)
