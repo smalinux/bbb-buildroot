@@ -43,7 +43,9 @@ echo "Booting slot ${boot_slot} (partition ${root_part})"
 
 setenv bootargs console=ttyS0,115200n8 root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait rauc.slot=${boot_slot}
 
-load mmc 0:1 ${kernel_addr_r} zImage
-load mmc 0:1 ${fdt_addr_r} am335x-boneblack.dtb
+# Load kernel and DTB from the active rootfs partition (/boot/)
+# so they are updated together with the rootfs via RAUC OTA.
+load mmc 0:${root_part} ${kernel_addr_r} boot/zImage
+load mmc 0:${root_part} ${fdt_addr_r} boot/am335x-boneblack.dtb
 
 bootz ${kernel_addr_r} - ${fdt_addr_r}

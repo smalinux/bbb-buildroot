@@ -126,9 +126,9 @@ The system uses an A/B partition scheme with automatic rollback:
 
 ```
 SD card layout:
-  p1: boot    (FAT, 32MB)  - U-Boot, kernel, DTB, boot.scr
-  p2: rootfsA (ext4, 512MB) - root filesystem A
-  p3: rootfsB (ext4, 512MB) - root filesystem B
+  p1: boot    (FAT, 16MB)  - U-Boot, boot.scr (bootloader only)
+  p2: rootfsA (ext4, 512MB) - root filesystem A + kernel + DTBs
+  p3: rootfsB (ext4, 512MB) - root filesystem B + kernel + DTBs
   p4: data    (ext4, 128MB) - persistent storage
 ```
 
