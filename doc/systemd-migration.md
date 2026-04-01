@@ -59,29 +59,34 @@ CONFIG_UEVENT_HELPER_PATH=""  # disable legacy hotplug
 Most of these are likely already enabled in `omap2plus_defconfig`, but the
 fragment ensures they're set regardless.
 
-### 3. Init scripts → systemd services (`board/bbb/post-build.sh`)
+### 3. Network configuration (`board/bbb/post-build.sh`)
 
-#### ntpd.service (was S49ntp)
+The BBB ethernet interface `end0` is configured via systemd-networkd:
 
 ```ini
-[Unit]
-Description=NTP time sync (BusyBox ntpd)
-After=network-online.target
-Wants=network-online.target
+# /usr/lib/systemd/network/20-wired.network
+[Match]
+Name=end0
 
-[Service]
-Type=forking
-ExecStartPre=-/usr/sbin/ntpd -q -p pool.ntp.org
-ExecStart=/usr/sbin/ntpd -p pool.ntp.org
-Restart=on-failure
+[Network]
+DHCP=yes
 
-[Install]
-WantedBy=multi-user.target
+[DHCPv4]
+UseDNS=yes
+UseNTP=yes
 ```
 
-- `ExecStartPre` does a one-shot sync (the `-` prefix means failure is not fatal)
-- `ExecStart` runs ntpd as a daemon for ongoing sync
-- `After=network-online.target` ensures network is up first
+Without this file, systemd-networkd starts but has no interfaces to manage,
+resulting in no network connectivity.
+
+### 4. NTP time sync
+
+systemd-timesyncd handles NTP natively — no custom ntpd service is needed.
+It starts automatically as `systemd-timesyncd.service` and uses NTP servers
+provided by DHCP (via `UseDNS=yes` in the `.network` file) or the compiled-in
+fallback servers.
+
+### 5. Init scripts → systemd services (`board/bbb/post-build.sh`)
 
 #### rauc-mark-good.service (was S99rauc-mark-good)
 
@@ -104,7 +109,7 @@ WantedBy=multi-user.target
 - `ConditionPathIsReadWrite` skips if MMC is not available
 - `RemainAfterExit=yes` keeps the unit in "active" state after completion
 
-### 4. Existing services (no changes needed)
+### 6. Existing services (no changes needed)
 
 - **Dropbear SSH**: Buildroot's dropbear package already includes a systemd
   service unit (`dropbear.service`). It will be used automatically.
@@ -120,18 +125,19 @@ systemctl status              # overall system state
 systemctl list-units          # all loaded units
 systemctl list-units --failed # any failed services
 journalctl -b                 # full boot log
-journalctl -u ntpd            # NTP service logs
-journalctl -u rauc-mark-good  # RAUC mark-good logs
+journalctl -u systemd-timesyncd  # NTP time sync logs
+journalctl -u rauc-mark-good    # RAUC mark-good logs
+journalctl -u systemd-networkd  # Network config logs
 ```
 
 ### Manage services
 
 ```bash
-systemctl start ntpd          # start a service
-systemctl stop ntpd           # stop a service
-systemctl restart ntpd        # restart a service
-systemctl enable ntpd         # enable at boot
-systemctl disable ntpd        # disable at boot
+systemctl start dropbear      # start a service
+systemctl stop dropbear       # stop a service
+systemctl restart dropbear    # restart a service
+systemctl enable dropbear     # enable at boot
+systemctl disable dropbear    # disable at boot
 ```
 
 ### Debug boot issues
@@ -146,11 +152,11 @@ systemd-analyze critical-chain # critical path
 
 - **Rootfs size increase**: systemd adds ~30-50 MB to the rootfs. The 256 MB
   partition has enough room.
-- **BusyBox is still installed**: BusyBox provides many utilities (ntpd, shell,
-  coreutils). systemd replaces only init and device management.
-- **Future improvements**: Consider enabling `systemd-timesyncd` (replaces
-  busybox ntpd), `systemd-networkd` (replaces ifupdown), and
-  `systemd-resolved` (local DNS cache) for a more integrated setup.
+- **BusyBox is still installed**: BusyBox provides many utilities (shell,
+  coreutils). systemd replaces init, device management, NTP, and networking.
+- **systemd-timesyncd** handles NTP natively, replacing busybox ntpd.
+- **systemd-networkd** manages ethernet via `/usr/lib/systemd/network/20-wired.network`.
+- **systemd-resolved** provides DNS resolution (started automatically).
 - **RAUC D-Bus**: With systemd, you can enable `BR2_PACKAGE_RAUC_DBUS=y` to
   allow D-Bus based RAUC control (useful for hawkBit integration or custom
   update UIs).

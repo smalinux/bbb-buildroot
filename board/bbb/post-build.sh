@@ -24,26 +24,21 @@ install -m 0755 -d "${TARGET_DIR}/data/rauc"
 # Ensure systemd wants directory exists
 install -m 0755 -d "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants"
 
-# --- systemd service: NTP time sync ---
-# Replaces the old S49ntp SysV init script.
-# Uses busybox ntpd (systemd-timesyncd is an alternative if enabled).
-install -m 0644 -D /dev/stdin "${TARGET_DIR}/usr/lib/systemd/system/ntpd.service" << 'EOF'
-[Unit]
-Description=NTP time sync (BusyBox ntpd)
-After=network-online.target
-Wants=network-online.target
+# --- systemd-networkd: configure ethernet with DHCP ---
+install -m 0644 -D /dev/stdin "${TARGET_DIR}/usr/lib/systemd/network/20-wired.network" << 'EOF'
+[Match]
+Name=end0
 
-[Service]
-Type=forking
-ExecStartPre=-/usr/sbin/ntpd -q -p pool.ntp.org
-ExecStart=/usr/sbin/ntpd -p pool.ntp.org
-Restart=on-failure
+[Network]
+DHCP=yes
 
-[Install]
-WantedBy=multi-user.target
+[DHCPv4]
+UseDNS=yes
+UseNTP=yes
 EOF
-ln -sf /usr/lib/systemd/system/ntpd.service \
-    "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants/ntpd.service"
+
+# NTP: systemd-timesyncd handles time sync natively, no custom service needed.
+# It was visible in boot log as "Started Network Time Synchronization".
 
 # --- systemd service: RAUC mark-good ---
 # Replaces the old S99rauc-mark-good SysV init script.

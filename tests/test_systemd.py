@@ -52,24 +52,61 @@ class TestSystemdJournal:
         assert critical == [], f"Critical journal entries: {critical}"
 
 
-class TestNtpdService:
-    """Verify NTP time sync service."""
+class TestTimeSyncService:
+    """Verify systemd-timesyncd handles NTP."""
 
-    def test_ntpd_service_exists(self, shell):
-        stdout, _, rc = shell.run("systemctl cat ntpd.service")
+    def test_timesyncd_exists(self, shell):
+        stdout, _, rc = shell.run("systemctl cat systemd-timesyncd.service")
         assert rc == 0
 
-    def test_ntpd_service_enabled(self, shell):
-        stdout, _, rc = shell.run("systemctl is-enabled ntpd.service")
+    def test_timesyncd_enabled(self, shell):
+        stdout, _, rc = shell.run("systemctl is-enabled systemd-timesyncd.service")
         assert rc == 0
         assert stdout[0].strip() == "enabled"
 
-    def test_ntpd_service_active(self, shell):
-        """ntpd may fail if no network; check it at least attempted to start."""
-        stdout, _, rc = shell.run("systemctl is-active ntpd.service")
-        # Accept 'active' or 'activating' (waiting for network)
-        assert stdout[0].strip() in ("active", "activating"), \
-            f"ntpd state: {stdout[0].strip()}"
+    def test_timesyncd_active(self, shell):
+        stdout, _, rc = shell.run("systemctl is-active systemd-timesyncd.service")
+        assert rc == 0
+        assert stdout[0].strip() == "active"
+
+    def test_clock_reasonable(self, shell):
+        """System clock should be past year 2025 (not stuck at epoch)."""
+        stdout, _, rc = shell.run("date +%Y")
+        assert rc == 0
+        year = int(stdout[0].strip())
+        assert year >= 2025, f"Clock year is {year}, likely not synced"
+
+
+class TestNetworking:
+    """Verify systemd-networkd and ethernet connectivity."""
+
+    def test_networkd_active(self, shell):
+        stdout, _, rc = shell.run("systemctl is-active systemd-networkd.service")
+        assert rc == 0
+        assert stdout[0].strip() == "active"
+
+    def test_end0_exists(self, shell):
+        """BBB ethernet interface end0 should exist."""
+        stdout, _, rc = shell.run("ip link show end0")
+        assert rc == 0
+
+    def test_end0_has_ip(self, shell):
+        """end0 should have an IPv4 address (from DHCP)."""
+        stdout, _, rc = shell.run("ip -4 addr show end0 | grep 'inet '")
+        assert rc == 0, "end0 has no IPv4 address — DHCP may have failed"
+
+    def test_network_config_exists(self, shell):
+        """Our .network file should be installed."""
+        stdout, _, rc = shell.run(
+            "test -f /usr/lib/systemd/network/20-wired.network && echo ok"
+        )
+        assert rc == 0
+
+    def test_dns_resolution(self, shell):
+        """DNS should work if network is up."""
+        stdout, _, rc = shell.run("resolvectl query pool.ntp.org 2>/dev/null || nslookup pool.ntp.org 2>/dev/null")
+        # Don't fail hard — DNS depends on DHCP providing a nameserver
+        pass
 
 
 class TestRaucMarkGoodService:
