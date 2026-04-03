@@ -242,10 +242,11 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 │   └── rootfs-overlay/
 │       └── etc/
 │           └── fw_env.config   # U-Boot env access config
+├── patches/                    # per-package patches (see doc/package-customization.md)
 ├── deploy.sh                   # build + upload + install OTA bundle
 ├── reset.sh                    # USB power-cycle BBB via uhubctl
 ├── tests/                      # labgrid integration tests (pytest)
-├── doc/                        # documentation
+├── doc/                        # documentation (see doc/package-customization.md)
 ├── buildroot/                  # buildroot submodule
 └── output/                     # build output (gitignored)
 ```
