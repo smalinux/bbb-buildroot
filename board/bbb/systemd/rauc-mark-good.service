@@ -1,0 +1,12 @@
+[Unit]
+Description=Mark current RAUC slot as good
+After=multi-user.target
+ConditionPathIsReadWrite=/dev/mmcblk0
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh -c 'fw_printenv BOOT_ORDER 2>/dev/null && rauc status mark-good'
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

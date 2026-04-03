@@ -1,0 +1,12 @@
+[Match]
+Name=end0
+
+[Network]
+DHCP=yes
+
+[DHCPv4]
+UseDNS=yes
+UseNTP=yes
+# Use MAC address as DHCP client ID so the router always assigns the same IP,
+# regardless of machine-id changes across OTA updates or slot switches.
+ClientIdentifier=mac

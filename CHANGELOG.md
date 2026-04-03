@@ -21,3 +21,8 @@ All notable changes to this project will be documented in this file.
 - Fix networking: add systemd-networkd config for end0 (DHCP)
 - Replace custom ntpd service with systemd-timesyncd (built-in)
 - Document RAUC A/B rollback procedure in README (manual + automatic)
+- Add persistent data partition with shell history, SSH keys, journal, and machine-id
+- Refactor post-build.sh: split inline services into standalone files under board/bbb/systemd/ and board/bbb/network/
+- Add colored shell prompt (root@BBB) and aliases (ll, la, vim, rebootf)
+- Fix DHCP IP changing across reboots (use MAC-based client identifier)
+- Reduce shutdown timeout from 90s to 10s for fast reboot

@@ -1,0 +1,14 @@
+[Unit]
+Description=Bind-mount persistent data from /data partition
+DefaultDependencies=no
+After=data.mount
+Requires=data.mount
+Before=systemd-journald.service dropbear.service getty.target multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/lib/systemd/scripts/data-persist.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=local-fs.target
