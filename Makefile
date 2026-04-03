@@ -7,9 +7,31 @@ BR_MAKE := $(MAKE) -C $(BUILDROOT_DIR) O=$(OUTPUT_DIR) BR2_EXTERNAL=$(CURDIR)
 # Targets that should auto-save defconfig after running
 CONFIG_TARGETS := menuconfig nconfig xconfig gconfig linux-menuconfig uboot-menuconfig busybox-menuconfig
 
+# Fragment files — auto-rebuild packages when these change
+BUSYBOX_FRAGMENT := $(CURDIR)/board/bbb/busybox.fragment
+LINUX_FRAGMENT   := $(CURDIR)/board/bbb/linux.fragment
+BUSYBOX_STAMP    := $(OUTPUT_DIR)/build/.busybox-fragment-stamp
+LINUX_STAMP      := $(OUTPUT_DIR)/build/.linux-fragment-stamp
+
 .PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild
 
 all: $(OUTPUT_DIR)/.config
+	@# Auto-rebuild busybox if its fragment changed
+	@if [ -f $(BUSYBOX_FRAGMENT) ] && ! cmp -s $(BUSYBOX_FRAGMENT) $(BUSYBOX_STAMP) 2>/dev/null; then \
+		if ls $(OUTPUT_DIR)/build/busybox-* >/dev/null 2>&1; then \
+			echo ">>> busybox.fragment changed — triggering busybox-rebuild"; \
+			$(BR_MAKE) busybox-rebuild; \
+		fi; \
+		mkdir -p $(dir $(BUSYBOX_STAMP)) && cp $(BUSYBOX_FRAGMENT) $(BUSYBOX_STAMP); \
+	fi
+	@# Auto-rebuild linux if its fragment changed
+	@if [ -f $(LINUX_FRAGMENT) ] && ! cmp -s $(LINUX_FRAGMENT) $(LINUX_STAMP) 2>/dev/null; then \
+		if ls $(OUTPUT_DIR)/build/linux-* >/dev/null 2>&1; then \
+			echo ">>> linux.fragment changed — triggering linux-rebuild"; \
+			$(BR_MAKE) linux-rebuild; \
+		fi; \
+		mkdir -p $(dir $(LINUX_STAMP)) && cp $(LINUX_FRAGMENT) $(LINUX_STAMP); \
+	fi
 	$(BR_MAKE)
 
 # Load saved defconfig into output on first build
