@@ -1,0 +1,8 @@
+config BR2_PACKAGE_LIBTREE
+	bool "libtree"
+	help
+	  Like ldd, but displays shared library dependencies as a tree.
+	  Useful for debugging missing or conflicting libraries on the
+	  target.
+
+	  https://github.com/haampie/libtree
