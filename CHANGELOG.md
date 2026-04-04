@@ -9,6 +9,8 @@ All notable changes to this project will be documented in this file.
 - Add deploy-kmod.sh script for fast single-module iteration (build + scp + insmod, no OTA, no reboot, keeps debug symbols)
 - Document three deploy levels for kernel modules (OTA / manual scp / deploy-kmod.sh) with a when-to-use-which table
 - Add hello out-of-tree kernel module example (kmodules/hello/, loads/unloads with pr_info, labgrid test verifies .ko install + modprobe + dmesg)
+- Move downloads (dl/) and toolchain (toolchain/) outside output/ to survive clean rebuilds
+- Enable ccache (ccache/) outside output/ to speed up recompilation after clean builds
 - Enable less pager for colored systemctl output (systemd needs less for ANSI color passthrough)
 - Fix failed unmount of /var/log/journal during shutdown (add ExecStop umounts, re-enable DefaultDependencies)
 - Add libtree external package (ldd as a tree, cloned from GitHub)
