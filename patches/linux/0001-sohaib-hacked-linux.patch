@@ -1,0 +1,14 @@
+Index: linux-bbb/init/main.c
+===================================================================
+--- linux-bbb.orig/init/main.c
++++ linux-bbb/init/main.c
+@@ -1007,6 +1007,9 @@ void start_kernel(void)
+ 	char *command_line;
+ 	char *after_dashes;
+ 
++	printk("==========================================================\n");
++	printk("=============== Sohaib hacked the kernel =================\n");
++	printk("==========================================================\n");
+ 	set_task_stack_end_magic(&init_task);
+ 	smp_setup_processor_id();
+ 	debug_objects_early_init();
