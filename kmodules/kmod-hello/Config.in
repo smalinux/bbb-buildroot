@@ -1,0 +1,11 @@
+config BR2_PACKAGE_KMOD_HELLO
+	bool "kmod-hello"
+	depends on BR2_LINUX_KERNEL
+	help
+	  Minimal out-of-tree kernel module example for the BeagleBone
+	  Black. Prints a message on load/unload via pr_info(). Useful
+	  as a template for new modules and as a smoke test for the
+	  kmodules/ build infrastructure.
+
+	  Load with: modprobe hello
+	  Check dmesg for the "hello: loaded on BeagleBone Black" line.
