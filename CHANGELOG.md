@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add out-of-tree kernel module support (kmodules/ directory, auto-included via external.mk wildcard, grouped under "Out-of-tree kernel modules" menu)
+- Auto-rebuild kmodules on source-file changes — Makefile watches kmodules/*/*.{c,h,S,Makefile,Kbuild,Kconfig} against a stamp and triggers <pkg>-rebuild on change (SITE_METHOD=local packages otherwise never re-check the source)
+- Add deploy-kmod.sh script for fast single-module iteration (build + scp + insmod, no OTA, no reboot, keeps debug symbols)
+- Document three deploy levels for kernel modules (OTA / manual scp / deploy-kmod.sh) with a when-to-use-which table
 - Enable less pager for colored systemctl output (systemd needs less for ANSI color passthrough)
 - Fix failed unmount of /var/log/journal during shutdown (add ExecStop umounts, re-enable DefaultDependencies)
 - Add libtree external package (ldd as a tree, cloned from GitHub)

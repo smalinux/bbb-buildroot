@@ -1,0 +1,6 @@
+menu "Out-of-tree kernel modules"
+
+# Add a source line here for each module under kmodules/<name>/
+# e.g.: source "$BR2_EXTERNAL_BBB_PATH/kmodules/hello/Config.in"
+
+endmenu

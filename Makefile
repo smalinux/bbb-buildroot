@@ -83,6 +83,55 @@ define override_rebuild_all
 	done
 endef
 
+# ---------------------------------------------------------------------------
+# Auto-rebuild for kmodules/
+# ---------------------------------------------------------------------------
+#
+# Problem: kmodules use SITE_METHOD=local, which tells buildroot to rsync
+# the source tree from kmodules/<pkg>/ into output/build/ ONCE. After the
+# .stamp_rsynced file lands, buildroot never re-checks the source — so
+# editing a .c file in kmodules/ and running `make` will NOT rebuild the
+# module. The stale .ko sits in the rootfs and you wonder why your edits
+# don't take effect.
+#
+# Solution: mirror the override_rebuild_all pattern — for each directory
+# under kmodules/, compare source file timestamps against a stamp file,
+# and trigger `make <pkg>-rebuild` if anything is newer.
+#
+# Each subdirectory of kmodules/ is a kmodule package whose name equals
+# the directory name (enforced by buildroot's pkgname rule, see
+# kmodules/kmod-hello/kmod-hello.mk as reference). So the loop is simpler
+# than override_rebuild_all: no OVERRIDE_PAIRS parsing needed.
+# ---------------------------------------------------------------------------
+
+KMODULES_DIR       := $(CURDIR)/kmodules
+KMOD_STAMP_DIR     := $(OUTPUT_DIR)/build/.kmod-stamps
+
+# Shell loop: for each kmodules/<pkg>/ directory, check if any source
+# file is newer than the stamp. If so, trigger <pkg>-rebuild.
+# Watches .c/.h/.S/Makefile/Kbuild/Kconfig — same filetypes as
+# override_rebuild_all for consistency.
+define kmod_rebuild_all
+	@if [ -d $(KMODULES_DIR) ]; then \
+		for srcdir in $(KMODULES_DIR)/*/; do \
+			[ -d "$$srcdir" ] || continue; \
+			pkg="$$(basename "$$srcdir")"; \
+			stamp="$(KMOD_STAMP_DIR)/$$pkg"; \
+			mkdir -p $(KMOD_STAMP_DIR); \
+			if [ ! -f "$$stamp" ] || [ -n "$$(find "$$srcdir" -newer "$$stamp" \
+				\( -name '*.c' -o -name '*.h' -o -name '*.S' \
+				   -o -name 'Makefile' -o -name 'Kbuild*' -o -name 'Kconfig*' \) \
+				-print -quit 2>/dev/null)" ]; then \
+				if [ -d $(OUTPUT_DIR)/build/$${pkg}-* ] 2>/dev/null; then \
+					echo ">>> kmodules/$$pkg changed — triggering $$pkg-rebuild"; \
+					$(BR_MAKE) $$pkg-rebuild; \
+				fi; \
+				touch "$$stamp"; \
+			fi; \
+		done; \
+	fi
+endef
+
 .PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild
 
 all: $(OUTPUT_DIR)/.config
@@ -104,6 +153,11 @@ all: $(OUTPUT_DIR)/.config
 	fi
 	@# Auto-rebuild any package whose OVERRIDE_SRCDIR has changed files
 	$(call override_rebuild_all)
+	@# Auto-rebuild any kmodule whose source files have changed. Buildroot
+	# treats kmodules/ as SITE_METHOD=local: it rsyncs once, stamps it, and
+	# never re-checks the source. Without this loop, editing a .c file and
+	# running `make` would silently ship the stale .ko.
+	$(call kmod_rebuild_all)
 	$(BR_MAKE)
 
 # Load saved defconfig into output on first build

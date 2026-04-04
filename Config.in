@@ -1,2 +1,4 @@
 source "$BR2_EXTERNAL_BBB_PATH/package/hello-world/Config.in"
 source "$BR2_EXTERNAL_BBB_PATH/package/libtree/Config.in"
+
+source "$BR2_EXTERNAL_BBB_PATH/kmodules/Config.in"

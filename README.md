@@ -25,6 +25,7 @@ make linux-rebuild                # rebuild kernel (fast, when using OVERRIDE_SR
 
 # --- Deploy / flash ---
 ./deploy.sh <board-ip>            # build + upload .raucb + rauc install + reboot
+./deploy-kmod.sh <pkg> <ip>       # fast: build one kmod, scp .ko, insmod (no OTA, no reboot)
 ./reset.sh                        # USB power-cycle BBB via uhubctl (brick recovery)
 sudo dd if=output/images/sdcard.img of=/dev/sdX bs=1M status=progress  # flash SD
 
@@ -331,6 +332,67 @@ Hello from BeagleBone Black!
 See `doc/custom-packages.md` for full documentation including autotools/cmake
 packages, dependencies, and naming rules.
 
+## Out-of-Tree Kernel Modules
+
+The `kmodules/` directory holds custom Linux kernel modules that build against
+the Buildroot-built kernel and install into the target rootfs as `.ko` files.
+
+### Layout
+
+```
+kmodules/
+├── Config.in                   # menu grouping; lists each module
+└── kmod-<name>/                # directory name becomes the buildroot package name
+    ├── Config.in               # BR2_PACKAGE_KMOD_<NAME> Kconfig entry
+    ├── kmod-<name>.mk          # Buildroot package definition (KMOD_<NAME>_* vars)
+    ├── Kbuild                  # obj-m := <name>.o
+    └── <name>.c                # module source → <name>.ko
+```
+
+**The `kmod-` directory prefix is required.** Buildroot derives the package
+name from the directory name (`pkg-utils.mk:45`), and variable prefixes in
+the `.mk` file must match. A mismatch causes the package to silently fail
+to build.
+
+Flat structure — no kernel-version or board-name nesting. The kernel version
+is already pinned in `defconfig`, and board-specific behavior belongs in
+device tree bindings, not directory layout. For version-conditional code,
+use `#ifdef LINUX_VERSION_CODE` in the source.
+
+### How it works
+
+`external.mk` auto-includes every `kmodules/*/*.mk` via a wildcard. Each
+module uses Buildroot's `kernel-module` infrastructure, which builds it
+against the configured kernel and installs into
+`/lib/modules/<version>/updates/` with `depmod` run automatically.
+
+### Adding a module
+
+```bash
+make menuconfig    # External options → Out-of-tree kernel modules → kmod-<name>
+make               # builds kernel + module + rootfs
+```
+
+On the BBB:
+
+```bash
+modprobe <name>
+dmesg | tail
+lsmod | grep <name>
+```
+
+### Fast iteration
+
+For live-reloading a module without rebuilding the rootfs or rebooting:
+
+```bash
+./deploy-kmod.sh kmod-hello <board-ip>   # build + scp + insmod + dmesg tail
+```
+
+See `doc/kernel-modules.md` for the full walkthrough including the
+`hello` example, naming conventions, all three deploy levels (OTA /
+manual scp / scripted), and troubleshooting.
+
 ### Version bumping
 
 Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bundle`.
@@ -362,6 +424,7 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 │   └── hello-world/            # example: minimal C program
 ├── patches/                    # per-package patches (see doc/package-customization.md)
 ├── deploy.sh                   # build + upload + install OTA bundle
+├── deploy-kmod.sh              # build + scp + insmod a single kernel module (no OTA)
 ├── reset.sh                    # USB power-cycle BBB via uhubctl
 ├── tests/                      # labgrid integration tests (pytest)
 ├── doc/                        # documentation (see doc/package-customization.md)
