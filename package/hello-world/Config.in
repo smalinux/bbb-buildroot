@@ -1,0 +1,6 @@
+config BR2_PACKAGE_HELLO_WORLD
+	bool "hello-world"
+	help
+	  A simple hello-world program that prints a greeting.
+	  Demonstrates how to add a custom package to the
+	  BR2_EXTERNAL tree.
