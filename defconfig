@@ -2986,7 +2986,7 @@ BR2_PACKAGE_UTIL_LINUX_SULOGIN=y
 # BR2_PACKAGE_ED is not set
 # BR2_PACKAGE_JOE is not set
 # BR2_PACKAGE_KIBI is not set
-# BR2_PACKAGE_LESS is not set
+BR2_PACKAGE_LESS=y
 # BR2_PACKAGE_MC is not set
 # BR2_PACKAGE_MG is not set
 # BR2_PACKAGE_MOST is not set
