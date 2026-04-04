@@ -7,7 +7,8 @@ Before=systemd-journald.service dropbear.service getty.target multi-user.target
 
 [Service]
 Type=oneshot
-ExecStart=/usr/lib/systemd/scripts/data-persist.sh
+ExecStart=/usr/lib/systemd/scripts/data-persist.sh start
+ExecStop=/usr/lib/systemd/scripts/data-persist.sh stop
 RemainAfterExit=yes
 
 [Install]

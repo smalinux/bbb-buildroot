@@ -35,6 +35,12 @@ install -m 0644 -D "${BOARD_DIR}/systemd/data-persist.service" \
 ln -sf /usr/lib/systemd/system/data-persist.service \
     "${TARGET_DIR}/usr/lib/systemd/system/local-fs.target.wants/data-persist.service"
 
+# --- Drop-in: delay /var/log/journal unmount until journald stops ---
+# systemd auto-generates var-log-journal.mount for the bind mount created
+# by data-persist.sh. Without this ordering, the unmount races journald.
+install -m 0644 -D "${BOARD_DIR}/systemd/var-log-journal.mount.d/dependencies.conf" \
+    "${TARGET_DIR}/usr/lib/systemd/system/var-log-journal.mount.d/dependencies.conf"
+
 # --- Shell history: DefaultEnvironment for all services ---
 # Injects HISTFILE/ENV into every service (agetty, dropbear, etc.) via
 # systemd's manager config. This avoids modifying login options which

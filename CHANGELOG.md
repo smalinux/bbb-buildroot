@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Enable less pager for colored systemctl output (systemd needs less for ANSI color passthrough)
+- Fix failed unmount of /var/log/journal during shutdown (add ExecStop umounts, re-enable DefaultDependencies)
 - Add libtree external package (ldd as a tree, cloned from GitHub)
 - Add custom external package support (package/ directory, Config.in, external.mk wildcard) with hello-world example
 - Fix ncurses "cannot initialize terminal type" over SSH by falling back to xterm when TERM is missing from terminfo
