@@ -2,6 +2,48 @@
 
 Linux system image for the BeagleBone Black with OTA updates via [RAUC](https://rauc.io/).
 
+## Cheatsheet
+
+```bash
+# --- Build ---
+make                              # incremental build (sdcard.img + update.raucb)
+make rebuild                      # wipe rootfs + reinstall (after disabling packages)
+make clean                        # nuclear: delete output/, recompile from scratch
+make bundle                       # build + show output paths
+
+# --- Configure (auto-saves defconfig on exit) ---
+make menuconfig                   # buildroot packages & system settings
+make linux-menuconfig             # kernel config
+make uboot-menuconfig             # bootloader config
+make busybox-menuconfig           # busybox applets
+
+# --- Single-package operations ---
+make <pkg>-rebuild                # recompile + reinstall one package
+make <pkg>-dirclean               # wipe one package's build dir
+make <pkg>-reconfigure            # re-run configure step
+make linux-rebuild                # rebuild kernel (fast, when using OVERRIDE_SRCDIR)
+
+# --- Deploy / flash ---
+./deploy.sh <board-ip>            # build + upload .raucb + rauc install + reboot
+./reset.sh                        # USB power-cycle BBB via uhubctl (brick recovery)
+sudo dd if=output/images/sdcard.img of=/dev/sdX bs=1M status=progress  # flash SD
+
+# --- On the board (ssh root@<ip>, password: root) ---
+rauc status                       # show slot states (A/B, booted, good/bad)
+fw_printenv BOOT_ORDER            # check active boot slot order
+fw_setenv BOOT_ORDER "A B"        # force next boot to slot A (rollback)
+journalctl -b                     # logs from current boot
+journalctl -k -f                  # follow kernel log
+
+# --- Tests (labgrid, from host) ---
+source tests/.venv/bin/activate
+pytest tests/ --lg-env tests/env.yaml              # all tests
+pytest tests/test_rauc.py --lg-env tests/env.yaml -v   # one test file
+
+# --- Git ---
+git submodule update --init --recursive   # first-time buildroot checkout
+```
+
 ## Prerequisites
 
 - Linux host (Ubuntu/Debian/Fedora)
