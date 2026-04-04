@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Fix ncurses "cannot initialize terminal type" over SSH by falling back to xterm when TERM is missing from terminfo
 - Replace SWUpdate with RAUC for A/B OTA updates (signed bundles, U-Boot bootchooser)
 - Add NTP time sync via BusyBox ntpd (needed for RAUC certificate validation)
 - Enable SquashFS in kernel (required by RAUC to mount update bundles)
@@ -30,3 +31,4 @@ All notable changes to this project will be documented in this file.
 - Add local.mk with OVERRIDE_SRCDIR support for building packages from local source trees (e.g. kernel, htop)
 - Auto-rebuild packages when OVERRIDE_SRCDIR source files change (find -newer stamp in Makefile)
 - Document OVERRIDE_SRCDIR mechanism for using custom local source directories
+- Fix missing terminal colors (htop, systemctl): set TERM=linux fallback for serial/dumb consoles

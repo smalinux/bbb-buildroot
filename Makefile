@@ -60,18 +60,18 @@ ifneq ($(wildcard $(LOCAL_MK)),)
 OVERRIDE_PAIRS := $(shell sed -n 's/^\([A-Z_]*\)_OVERRIDE_SRCDIR\s*=\s*\(.*\)/\1 \2/p' $(LOCAL_MK))
 endif
 
-# Step 2: shell function that loops over OVERRIDE_PAIRS and rebuilds if needed.
+# Step 2: shell loop over OVERRIDE_PAIRS two words at a time (PKG, PATH).
+# Converts PKG to buildroot target name (LINUX → linux, HOST_RAUC → host-rauc).
+# Uses "find -newer <stamp>" to check for changed source files (.c .h .S .dts etc.).
+# If anything is newer (or no stamp yet), triggers "<pkg>-rebuild" and touches stamp.
+# "-print -quit" stops at first match — fast even for huge trees like linux.
 define override_rebuild_all
-	@# Walk the pairs two words at a time: $1=PKG_UPPER, $2=SRCDIR
 	@set -- $(OVERRIDE_PAIRS); \
 	while [ $$# -ge 2 ]; do \
 		pkg_upper="$$1"; srcdir="$$2"; shift 2; \
-		# Convert "LINUX" → "linux", "HOST_RAUC" → "host-rauc" (buildroot target name)
 		pkg="$$(echo $$pkg_upper | tr 'A-Z' 'a-z' | tr '_' '-')"; \
 		stamp="$(OVERRIDE_STAMP_DIR)/$$pkg_upper"; \
 		mkdir -p $(OVERRIDE_STAMP_DIR); \
-		# Check: does any source file have a newer timestamp than our stamp?
-		# -print -quit = stop at the first match (fast, even for huge trees like linux)
 		if [ ! -f "$$stamp" ] || [ -n "$$(find "$$srcdir" -newer "$$stamp" \
 			\( -name '*.c' -o -name '*.h' -o -name '*.S' -o -name '*.dts' \
 			   -o -name '*.dtsi' -o -name 'Makefile' -o -name 'Kconfig*' \

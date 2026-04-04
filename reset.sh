@@ -50,7 +50,7 @@
 #
 set -euo pipefail
 
-PAUSE_SEC=2
+PAUSE_SEC=3
 CONF="$HOME/.config/reset-usb.conf"
 
 # --- Saved config: skip discovery if we already know the hub:port ---

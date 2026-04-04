@@ -16,6 +16,16 @@ export HISTSIZE=1000
 # until SIGKILL (DefaultTimeoutStopSec), and history is never written.
 trap 'exit 0' HUP TERM
 
+# Terminal: fall back to "xterm" when the client's TERM isn't in the
+# target's terminfo database. SSH (dropbear) inherits TERM from the
+# client (e.g. "tmux-256color", "alacritty"), but the BBB's minimal
+# BusyBox only ships a handful of entries. ncurses apps (menuconfig,
+# top, vi) abort if the entry is missing. "xterm" is always available
+# and supports color + cursor addressing.
+if ! infocmp "$TERM" >/dev/null 2>&1; then
+    export TERM=xterm
+fi
+
 # Prompt: green user @ blue BBB : yellow path $
 export PS1='\[\e[1;32m\]\u\[\e[0m\]@\[\e[1;34m\]BBB\[\e[0m\]:\[\e[1;33m\]\w\[\e[0m\]\$ '
 export EDITOR=vi
