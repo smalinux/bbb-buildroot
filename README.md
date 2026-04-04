@@ -215,6 +215,80 @@ rollback automatically:
 This means a bricked update recovers itself after 3 power cycles — no serial
 console or manual intervention required.
 
+## Custom Packages
+
+The `package/` directory holds custom packages that are built alongside
+standard Buildroot packages. A `hello-world` example is included.
+
+### How it works
+
+Two files in the project root wire external packages into Buildroot:
+
+- **`Config.in`** — sources each package's Kconfig file so it appears in
+  `make menuconfig` under "External options".
+- **`external.mk`** — uses a wildcard (`package/*/*.mk`) to auto-include
+  every package's build recipe. Adding a new package directory is enough —
+  no need to edit `external.mk`.
+
+### Package anatomy
+
+Each package lives in its own directory under `package/`:
+
+```
+package/<name>/
+├── Config.in      # Kconfig menu entry (BR2_PACKAGE_<NAME>)
+├── <name>.mk      # build recipe (source location, build/install commands)
+└── <name>.c       # source code (for local packages)
+```
+
+The `.mk` file defines where the source comes from:
+
+- **Local source** (checked into this repo): `<NAME>_SITE_METHOD = local`
+- **Git clone** (fetched during build): `<NAME>_SITE_METHOD = git` with
+  `<NAME>_SITE = https://github.com/org/repo.git` and
+  `<NAME>_VERSION = <tag-or-commit>`
+
+### Adding a new package
+
+1. Create `package/<name>/` with a `Config.in` and `<name>.mk`
+2. Add a `source "$BR2_EXTERNAL_BBB_PATH/package/<name>/Config.in"` line
+   to the root `Config.in`
+3. Enable it in `make menuconfig` → "External options"
+4. Build:
+
+```bash
+make menuconfig    # enable "<name>" under "External options"
+make               # builds everything including the new package
+```
+
+Or skip menuconfig by adding `BR2_PACKAGE_<NAME>=y` to `defconfig` and
+running `make`.
+
+### Example: hello-world
+
+A minimal C program that prints a greeting. To enable it:
+
+```bash
+make menuconfig    # enable "hello-world" under "External options"
+make
+```
+
+Or add this line to `defconfig` and run `make`:
+
+```
+BR2_PACKAGE_HELLO_WORLD=y
+```
+
+After building, on the BeagleBone Black:
+
+```bash
+hello-world
+Hello from BeagleBone Black!
+```
+
+See `doc/custom-packages.md` for full documentation including autotools/cmake
+packages, dependencies, and naming rules.
+
 ### Version bumping
 
 Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bundle`.
@@ -225,8 +299,8 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 ├── Makefile                    # wrapper around buildroot
 ├── defconfig                   # board configuration (tracked in git)
 ├── external.desc               # BR2_EXTERNAL tree descriptor
-├── external.mk                 # BR2_EXTERNAL makefile (empty)
-├── Config.in                   # BR2_EXTERNAL kconfig (empty)
+├── external.mk                 # auto-includes all package/*/*.mk
+├── Config.in                   # sources each custom package's Kconfig
 ├── board/bbb/
 │   ├── boot.cmd                # U-Boot A/B boot script (RAUC bootchooser)
 │   ├── busybox.fragment        # BusyBox config additions
@@ -242,6 +316,8 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 │   └── rootfs-overlay/
 │       └── etc/
 │           └── fw_env.config   # U-Boot env access config
+├── package/                    # custom external packages (see doc/custom-packages.md)
+│   └── hello-world/            # example: minimal C program
 ├── patches/                    # per-package patches (see doc/package-customization.md)
 ├── deploy.sh                   # build + upload + install OTA bundle
 ├── reset.sh                    # USB power-cycle BBB via uhubctl

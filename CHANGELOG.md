@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add custom external package support (package/ directory, Config.in, external.mk wildcard) with hello-world example
 - Fix ncurses "cannot initialize terminal type" over SSH by falling back to xterm when TERM is missing from terminfo
 - Replace SWUpdate with RAUC for A/B OTA updates (signed bundles, U-Boot bootchooser)
 - Add NTP time sync via BusyBox ntpd (needed for RAUC certificate validation)
