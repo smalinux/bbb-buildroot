@@ -2,7 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.0] - 2026-04-04
+
+Initial release — BeagleBone Black Buildroot platform with RAUC A/B OTA updates, out-of-tree kernel module infrastructure, and labgrid integration tests.
+
 
 - Add out-of-tree kernel module support (kmodules/ directory, auto-included via external.mk wildcard, grouped under "Out-of-tree kernel modules" menu)
 - Auto-rebuild kmodules on source-file changes — Makefile watches kmodules/*/*.{c,h,S,Makefile,Kbuild,Kconfig} against a stamp and triggers <pkg>-rebuild on change (SITE_METHOD=local packages otherwise never re-check the source)
