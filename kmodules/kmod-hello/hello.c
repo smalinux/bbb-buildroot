@@ -13,10 +13,30 @@
 #include <linux/init.h>
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/version.h>
+#include <generated/utsrelease.h>
+
+/*
+ * Kernel-version compat shim — demonstrates the pattern out-of-tree
+ * modules use to adapt to API changes across kernel versions. Real
+ * drivers use this for things like platform_driver.remove, which
+ * changed its return type from int to void in 6.11. Here we just
+ * label the era for the log message.
+ *
+ * See doc/kernel-modules-versioning.md for the full rationale.
+ */
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+#define HELLO_KERNEL_ERA "6.11+"
+#elif LINUX_VERSION_CODE >= KERNEL_VERSION(6, 6, 0)
+#define HELLO_KERNEL_ERA "6.6..6.10"
+#else
+#define HELLO_KERNEL_ERA "pre-6.6"
+#endif
 
 static int __init hello_init(void)
 {
-	pr_info("hello: loaded on BeagleBone Black\n");
+	pr_info("hello: loaded on BeagleBone Black (built for %s, era %s)\n",
+		UTS_RELEASE, HELLO_KERNEL_ERA);
 	return 0;
 }
 

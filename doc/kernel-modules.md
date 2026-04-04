@@ -300,6 +300,107 @@ Output on success:
 | Just re-load the module fast during dev | Level 3 (scripted) |
 | Verify depmod/modules.dep integration | Level 1 (OTA) — Level 2/3 bypass it |
 
+## Handling kernel version differences
+
+Kernel APIs change between versions. A module that compiled against 6.1
+may fail on 6.11 because a function signature changed, a header moved,
+or a type was renamed. The idiomatic response is **compile-time shims
+in the source**, not forked directories per kernel version.
+
+### The `LINUX_VERSION_CODE` pattern
+
+Include `<linux/version.h>` and gate version-sensitive code with
+`KERNEL_VERSION(x,y,z)` comparisons:
+
+```c
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+/* new API — platform_driver.remove returns void */
+static void my_remove(struct platform_device *pdev)
+{
+	do_cleanup(pdev);
+}
+#else
+/* old API — returns int */
+static int my_remove(struct platform_device *pdev)
+{
+	do_cleanup(pdev);
+	return 0;
+}
+#endif
+
+static struct platform_driver my_driver = {
+	.probe  = my_probe,
+	.remove = my_remove,
+	/* ... */
+};
+```
+
+The kernel's `include/linux/version.h` defines `LINUX_VERSION_CODE` as
+a packed integer (major × 65536 + minor × 256 + patch), so numeric
+comparisons work directly.
+
+### Identifying the kernel at build time
+
+Use `<generated/utsrelease.h>` → `UTS_RELEASE` to embed the exact
+kernel version string the module was built against:
+
+```c
+#include <generated/utsrelease.h>
+
+pr_info("mydriver: built for kernel %s\n", UTS_RELEASE);
+```
+
+The `hello` module demonstrates both patterns — see
+`kmodules/kmod-hello/hello.c`.
+
+### When to use a `compat.h`
+
+If a module touches many version-sensitive APIs, the `#if` blocks
+clutter the driver logic. Extract them into a `compat.h` header that
+defines stable wrappers:
+
+```c
+/* kmodules/mydriver/compat.h */
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 11, 0)
+#define COMPAT_REMOVE_RETURN void
+#define COMPAT_REMOVE_RETURN_VAL(x)
+#else
+#define COMPAT_REMOVE_RETURN int
+#define COMPAT_REMOVE_RETURN_VAL(x) return (x)
+#endif
+```
+
+```c
+/* kmodules/mydriver/mydriver.c */
+#include "compat.h"
+
+static COMPAT_REMOVE_RETURN my_remove(struct platform_device *pdev)
+{
+	do_cleanup(pdev);
+	COMPAT_REMOVE_RETURN_VAL(0);
+}
+```
+
+The `zfs-linux`, `nvidia`, and DKMS-style drivers all use this pattern
+for modules that support many kernel versions.
+
+### What NOT to do
+
+- **Don't fork the directory per kernel version.** `kmodules/6.1.x/`
+  and `kmodules/6.18.x/` diverge over time; fixes land in one copy and
+  not the other. Buildroot only compiles against one kernel at a time
+  anyway.
+- **Don't pin to one kernel and hope.** If you're upgrading the kernel,
+  actually test your modules against the new version and add compat
+  shims for anything that broke.
+
+See `doc/kernel-modules-versioning.md` for the full design rationale,
+including how to handle multi-board enablement via per-board defconfigs.
+
 ## Troubleshooting
 
 ### Module build fails with "No such file or directory: .../Kbuild"
