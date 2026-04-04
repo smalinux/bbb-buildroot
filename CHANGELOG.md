@@ -27,3 +27,5 @@ All notable changes to this project will be documented in this file.
 - Fix DHCP IP changing across reboots (use MAC-based client identifier)
 - Reduce shutdown timeout from 90s to 10s for fast reboot
 - Add patches/ directory and document package customization (patches, fragments, CONF_OPTS)
+- Add local.mk with OVERRIDE_SRCDIR support for building packages from local source trees (e.g. kernel, htop)
+- Document OVERRIDE_SRCDIR mechanism for using custom local source directories
