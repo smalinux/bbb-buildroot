@@ -28,4 +28,5 @@ All notable changes to this project will be documented in this file.
 - Reduce shutdown timeout from 90s to 10s for fast reboot
 - Add patches/ directory and document package customization (patches, fragments, CONF_OPTS)
 - Add local.mk with OVERRIDE_SRCDIR support for building packages from local source trees (e.g. kernel, htop)
+- Auto-rebuild packages when OVERRIDE_SRCDIR source files change (find -newer stamp in Makefile)
 - Document OVERRIDE_SRCDIR mechanism for using custom local source directories

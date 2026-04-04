@@ -1,6 +1,7 @@
 BUILDROOT_DIR := $(CURDIR)/buildroot
 OUTPUT_DIR    := $(CURDIR)/output
 DEFCONFIG     := $(CURDIR)/defconfig
+LOCAL_MK      := $(CURDIR)/local.mk
 
 BR_MAKE := $(MAKE) -C $(BUILDROOT_DIR) O=$(OUTPUT_DIR) BR2_EXTERNAL=$(CURDIR)
 
@@ -12,6 +13,75 @@ BUSYBOX_FRAGMENT := $(CURDIR)/board/bbb/busybox.fragment
 LINUX_FRAGMENT   := $(CURDIR)/board/bbb/linux.fragment
 BUSYBOX_STAMP    := $(OUTPUT_DIR)/build/.busybox-fragment-stamp
 LINUX_STAMP      := $(OUTPUT_DIR)/build/.linux-fragment-stamp
+
+# ---------------------------------------------------------------------------
+# Auto-rebuild for OVERRIDE_SRCDIR packages
+# ---------------------------------------------------------------------------
+#
+# Problem: when you develop a package (kernel, u-boot, htop, ...) from a local
+# source tree via OVERRIDE_SRCDIR in local.mk, Buildroot does NOT watch that
+# tree for changes.  Running plain "make" won't notice you edited a .c file.
+# You'd have to remember to run "make linux-rebuild" manually every time.
+#
+# Solution: before the main build, we compare file timestamps in each override
+# source directory against a stamp file.  If anything is newer, we trigger
+# "<pkg>-rebuild" automatically.  This makes "make" the only command you need.
+#
+# How it works, step by step:
+#
+#   1. OVERRIDE_PAIRS — at Makefile parse time, we sed local.mk to extract
+#      every "<PKG>_OVERRIDE_SRCDIR = <path>" line into a flat word list:
+#        LINUX /src/linux-bbb UBOOT /src/uboot-bbb ...
+#
+#   2. override_rebuild_all — a shell loop called from the "all" target.
+#      It walks the word list two at a time (PKG, PATH) and for each:
+#        a. Converts PKG to the buildroot target name (LINUX → linux)
+#        b. Runs "find <path> -newer <stamp>" looking for source files
+#           (.c .h .S .dts Makefile Kconfig etc.)
+#        c. If any file is newer (or no stamp exists yet = first build):
+#           - runs "make <pkg>-rebuild" (which rsyncs + recompiles)
+#           - touches the stamp so next "make" is a no-op
+#
+#   3. The stamp files live in output/build/.override-stamps/<PKG>.
+#      "make clean" wipes output/ entirely, so stamps reset naturally.
+#
+# To add a new package: just add a line to local.mk, e.g.:
+#   UBOOT_OVERRIDE_SRCDIR = /src/uboot-bbb
+# The Makefile picks it up automatically — no other changes needed.
+# ---------------------------------------------------------------------------
+
+# Where stamp files are stored (one per overridden package)
+OVERRIDE_STAMP_DIR := $(OUTPUT_DIR)/build/.override-stamps
+
+# Step 1: parse local.mk into a flat "PKG PATH PKG PATH ..." word list.
+# The sed extracts the uppercase package name and the path from each line.
+# Example: "LINUX_OVERRIDE_SRCDIR = /src/linux-bbb" → "LINUX /src/linux-bbb"
+ifneq ($(wildcard $(LOCAL_MK)),)
+OVERRIDE_PAIRS := $(shell sed -n 's/^\([A-Z_]*\)_OVERRIDE_SRCDIR\s*=\s*\(.*\)/\1 \2/p' $(LOCAL_MK))
+endif
+
+# Step 2: shell function that loops over OVERRIDE_PAIRS and rebuilds if needed.
+define override_rebuild_all
+	@# Walk the pairs two words at a time: $1=PKG_UPPER, $2=SRCDIR
+	@set -- $(OVERRIDE_PAIRS); \
+	while [ $$# -ge 2 ]; do \
+		pkg_upper="$$1"; srcdir="$$2"; shift 2; \
+		# Convert "LINUX" → "linux", "HOST_RAUC" → "host-rauc" (buildroot target name)
+		pkg="$$(echo $$pkg_upper | tr 'A-Z' 'a-z' | tr '_' '-')"; \
+		stamp="$(OVERRIDE_STAMP_DIR)/$$pkg_upper"; \
+		mkdir -p $(OVERRIDE_STAMP_DIR); \
+		# Check: does any source file have a newer timestamp than our stamp?
+		# -print -quit = stop at the first match (fast, even for huge trees like linux)
+		if [ ! -f "$$stamp" ] || [ -n "$$(find "$$srcdir" -newer "$$stamp" \
+			\( -name '*.c' -o -name '*.h' -o -name '*.S' -o -name '*.dts' \
+			   -o -name '*.dtsi' -o -name 'Makefile' -o -name 'Kconfig*' \
+			   -o -name 'Kbuild*' -o -name '*.cfg' \) -print -quit 2>/dev/null)" ]; then \
+			echo ">>> $$srcdir changed — triggering $$pkg-rebuild"; \
+			$(BR_MAKE) $$pkg-rebuild; \
+			touch "$$stamp"; \
+		fi; \
+	done
+endef
 
 .PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild
 
@@ -32,6 +102,8 @@ all: $(OUTPUT_DIR)/.config
 		fi; \
 		mkdir -p $(dir $(LINUX_STAMP)) && cp $(LINUX_FRAGMENT) $(LINUX_STAMP); \
 	fi
+	@# Auto-rebuild any package whose OVERRIDE_SRCDIR has changed files
+	$(call override_rebuild_all)
 	$(BR_MAKE)
 
 # Load saved defconfig into output on first build

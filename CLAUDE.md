@@ -50,6 +50,7 @@ make clean              # clean build output
 - **Document every step**: For each new feature or configuration step, create a dedicated documentation file under `doc/` explaining what was done and how it works. Each doc should be self-contained and cover the what, why, and how.
 - **Update the changelog**: Always add a one-liner entry to `CHANGELOG.md` under the `[Unreleased]` section for every change made to the project.
 - **Write tests for every feature**: When adding or changing a feature, write a labgrid-based integration test under `tests/` that verifies the feature works on the real hardware. Tests run via pytest against the BeagleBone Black (slave) from the host (master). See `tests/README.md` for setup and `tests/conftest.py` for fixtures.
+- **Comment non-obvious logic**: When writing Makefile tricks, shell scripts, or any logic that isn't immediately obvious, add comments explaining *what* it does and *why*. This project is maintained by a single developer — if the logic can't be understood at a glance six months later, it needs a comment.
 
 ## Testing
 

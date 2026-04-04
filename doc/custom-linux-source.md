@@ -33,11 +33,22 @@ rsyncs the local directory into `output/build/<pkg>-custom/` instead.
 
 ## Rebuilding
 
-After modifying files in the local source tree:
+After modifying files in the local source tree, just run:
 
 ```bash
-make <pkg>-rebuild      # re-rsync and rebuild (e.g. make linux-rebuild)
-make                    # full image rebuild
+make                    # auto-detects changes and triggers <pkg>-rebuild
+```
+
+The top-level Makefile parses `local.mk` for all `_OVERRIDE_SRCDIR` entries and uses
+`find -newer` against a stamp file to detect source changes. If any source file
+(`.c`, `.h`, `.S`, `.dts`, `Makefile`, `Kconfig`, etc.) is newer than the last build
+stamp, it automatically runs `<pkg>-rebuild` before the main build. No manual
+`linux-rebuild` needed.
+
+You can still force a rebuild manually:
+
+```bash
+make linux-rebuild      # force re-rsync and rebuild
 ```
 
 ## Finding the variable name
