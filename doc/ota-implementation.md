@@ -321,4 +321,4 @@ Runs after all images are built. It:
 | `defconfig` | Buildroot configuration with RAUC and all dependencies enabled |
 | `Makefile` | Top-level wrapper with `make bundle` target and auto-save on config targets |
 | `external.desc` | BR2_EXTERNAL tree descriptor (name: BBB) |
-| `deploy.sh` | Build + upload bundle via SCP + install with rauc + reboot |
+| `scripts/deploy.sh` | Build + upload bundle via SCP + install with rauc + reboot |

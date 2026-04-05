@@ -32,7 +32,7 @@ framework for the BeagleBone Black build.
   swupdate.cfg; creates `S99rauc-mark-good` instead of `S99swupdate-confirm`
 - `board/bbb/post-image.sh` — generates signed `.raucb` bundle with host-rauc
   instead of `.swu` cpio archive
-- `deploy.sh` — uses SCP + `rauc install` via SSH instead of curl upload to
+- `scripts/deploy.sh` — uses SCP + `rauc install` via SSH instead of curl upload to
   SWUpdate web UI on port 8080
 - `Makefile` — `make bundle` replaces `make swu`
 - `defconfig` — `--bundle-version` replaces `--swu-version` in post-image args

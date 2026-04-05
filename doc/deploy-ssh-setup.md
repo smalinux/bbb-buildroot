@@ -2,7 +2,7 @@
 
 ## Problem
 
-The deploy script (`deploy.sh`) uses SSH/SCP to upload and install RAUC
+The deploy script (`scripts/deploy.sh`) uses SSH/SCP to upload and install RAUC
 bundles on the BeagleBone Black. Two issues make this painful out of the box:
 
 1. **Host key changes on every reflash.** Dropbear (the SSH server on the
@@ -42,7 +42,7 @@ The password defaults to `root` (matching the buildroot default set via
 the `BOARD_PASS` environment variable:
 
 ```
-BOARD_PASS=mypassword ./deploy.sh 192.168.0.98
+BOARD_PASS=mypassword ./scripts/deploy.sh 192.168.0.98
 ```
 
 ### Host prerequisite
@@ -63,10 +63,10 @@ The script checks for `sshpass` and exits with an error if it's missing.
 
 ```bash
 # Default password (root)
-./deploy.sh 192.168.0.98
+./scripts/deploy.sh 192.168.0.98
 
 # Custom password
-BOARD_PASS=secret ./deploy.sh 192.168.0.98
+BOARD_PASS=secret ./scripts/deploy.sh 192.168.0.98
 ```
 
 ## Security notes

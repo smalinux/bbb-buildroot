@@ -136,7 +136,7 @@ The fastest possible kernel iteration: no SD card writes at all.
 - [ ] **SSH key login** — install host's `~/.ssh/id_*.pub` into the
   rootfs overlay at `/root/.ssh/authorized_keys`. Eliminates
   `sshpass` dependency and password prompts everywhere.
-  - Update `deploy.sh` to use key auth instead of sshpass
+  - Update `scripts/deploy.sh` to use key auth instead of sshpass
   - Update all `make *-deploy` targets to use key auth
   - Still keep a root password for serial console access
 

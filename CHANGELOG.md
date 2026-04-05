@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+- Move helper scripts (deploy.sh, deploy-kmod.sh, reset.sh) into scripts/ to declutter project root
+
 ## [1.0] - 2026-04-04
 
 Initial release — BeagleBone Black Buildroot platform with RAUC A/B OTA updates, out-of-tree kernel module infrastructure, and labgrid integration tests.

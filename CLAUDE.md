@@ -15,7 +15,7 @@ make linux-menuconfig   # configure Linux kernel (auto-saves defconfig)
 make uboot-menuconfig   # configure U-Boot (auto-saves defconfig)
 make bundle             # build + generate RAUC OTA bundle
 make clean              # clean build output
-./deploy.sh <board-ip>  # build, upload .raucb via SSH, install with rauc, reboot
+./scripts/deploy.sh <board-ip>  # build, upload .raucb via SSH, install with rauc, reboot
 ```
 
 ## Architecture

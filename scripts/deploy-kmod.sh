@@ -2,7 +2,7 @@
 #
 # deploy-kmod.sh — Build a single kernel module and deploy it to the BBB
 # without going through the OTA/RAUC flow. Much faster than `make bundle
-# && ./deploy.sh` when iterating on a driver: no rootfs rebuild, no RAUC
+# && ./scripts/deploy.sh` when iterating on a driver: no rootfs rebuild, no RAUC
 # bundle, no reboot — just insmod the freshly built .ko.
 #
 # Usage:

@@ -24,9 +24,9 @@ make <pkg>-reconfigure            # re-run configure step
 make linux-rebuild                # rebuild kernel (fast, when using OVERRIDE_SRCDIR)
 
 # --- Deploy / flash ---
-./deploy.sh <board-ip>            # build + upload .raucb + rauc install + reboot
-./deploy-kmod.sh <pkg> <ip>       # fast: build one kmod, scp .ko, insmod (no OTA, no reboot)
-./reset.sh                        # USB power-cycle BBB via uhubctl (brick recovery)
+./scripts/deploy.sh <board-ip>            # build + upload .raucb + rauc install + reboot
+./scripts/deploy-kmod.sh <pkg> <ip>       # fast: build one kmod, scp .ko, insmod (no OTA, no reboot)
+./scripts/reset.sh                        # USB power-cycle BBB via uhubctl (brick recovery)
 sudo dd if=output/images/sdcard.img of=/dev/sdX bs=1M status=progress  # flash SD
 
 # --- On the board (ssh root@<ip>, password: root) ---
@@ -180,10 +180,10 @@ SD card layout:
 The deploy script builds, uploads via SCP, installs with RAUC, and reboots:
 
 ```
-./deploy.sh <beaglebone-ip>
+./scripts/deploy.sh <beaglebone-ip>
 ```
 
-Default root password is `root`. Override with `BOARD_PASS=secret ./deploy.sh <ip>`.
+Default root password is `root`. Override with `BOARD_PASS=secret ./scripts/deploy.sh <ip>`.
 
 ### Manual update
 
@@ -386,7 +386,7 @@ lsmod | grep <name>
 For live-reloading a module without rebuilding the rootfs or rebooting:
 
 ```bash
-./deploy-kmod.sh kmod-hello <board-ip>   # build + scp + insmod + dmesg tail
+./scripts/deploy-kmod.sh kmod-hello <board-ip>   # build + scp + insmod + dmesg tail
 ```
 
 See `doc/kernel-modules.md` for the full walkthrough including the
@@ -423,9 +423,10 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 ├── package/                    # custom external packages (see doc/custom-packages.md)
 │   └── hello-world/            # example: minimal C program
 ├── patches/                    # per-package patches (see doc/package-customization.md)
-├── deploy.sh                   # build + upload + install OTA bundle
-├── deploy-kmod.sh              # build + scp + insmod a single kernel module (no OTA)
-├── reset.sh                    # USB power-cycle BBB via uhubctl
+├── scripts/                    # helper scripts (deploy, deploy-kmod, reset)
+│   ├── deploy.sh               # build + upload + install OTA bundle
+│   ├── deploy-kmod.sh          # build + scp + insmod a single kernel module (no OTA)
+│   └── reset.sh                # USB power-cycle BBB via uhubctl
 ├── tests/                      # labgrid integration tests (pytest)
 ├── doc/                        # documentation (see doc/package-customization.md)
 ├── buildroot/                  # buildroot submodule
