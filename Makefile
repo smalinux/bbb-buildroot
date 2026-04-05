@@ -132,7 +132,7 @@ define kmod_rebuild_all
 	fi
 endef
 
-.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild
+.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild kernel-deploy
 
 all: $(OUTPUT_DIR)/.config
 	@# Auto-rebuild busybox if its fragment changed
@@ -197,6 +197,20 @@ rebuild:
 	find $(OUTPUT_DIR)/build -name '.stamp_target_installed' -delete 2>/dev/null; true
 	$(MAKE) all
 
+# Fast kernel deploy — skip RAUC/rootfs entirely. Overwrites zImage, DTB,
+# and /lib/modules on the running (active) slot. Dev-only shortcut; real
+# OTA must still go through `make bundle && ./scripts/deploy.sh`.
+# Requires BOARD=<ip> (e.g., `make kernel-deploy BOARD=192.168.1.100`).
+# Two-step: rebuild kernel, then deploy. Run the script alone
+# (./scripts/kernel-deploy.sh <ip>) to skip the rebuild when you've
+# already run `make linux-rebuild` yourself.
+kernel-deploy: $(OUTPUT_DIR)/.config
+	@if [ -z "$(BOARD)" ]; then \
+		echo "Usage: make kernel-deploy BOARD=<ip>"; exit 1; \
+	fi
+	$(BR_MAKE) linux-rebuild
+	./scripts/kernel-deploy.sh $(BOARD)
+
 # Any other buildroot target: pass through
 %: $(OUTPUT_DIR)/.config
 	$(BR_MAKE) $@
@@ -215,6 +229,7 @@ help:
 	@echo "  make menuconfig     - configure (auto-saves defconfig)"
 	@echo "  make linux-menuconfig - configure Linux kernel"
 	@echo "  make bundle         - build + generate RAUC OTA bundle"
+	@echo "  make kernel-deploy BOARD=<ip> - fast kernel/modules push (no OTA, no reboot-via-bundle)"
 	@echo "  make rebuild        - clean rootfs + rebuild (no recompile)"
 	@echo "  make clean          - full clean (recompiles everything)"
 	@echo "  make help           - this message"

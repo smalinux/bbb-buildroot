@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 - Move helper scripts (deploy.sh, deploy-kmod.sh, reset.sh) into scripts/ to declutter project root
+- Add `make kernel-deploy BOARD=<ip>` for fast kernel+modules push (linux-rebuild + scp zImage/DTB/modules + depmod + reboot, no RAUC bundle, no rootfs rebuild)
 
 ## [1.0] - 2026-04-04
 

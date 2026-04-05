@@ -95,12 +95,12 @@ make the edit→build→test cycle faster — the biggest productivity wins.
 Full RAUC OTA takes minutes. For kernel-only changes, a direct deploy
 is 10-20x faster.
 
-- [ ] **`make kernel-deploy BOARD=<ip>`** — Makefile target that does:
-  1. `make linux-rebuild` (incremental, seconds if OVERRIDE_SRCDIR)
-  2. `scp` zImage + DTB + modules to the BBB
-  3. `ssh root@bbb "sync && reboot"`
-  - Skips rootfs rebuild, genimage, RAUC bundle, rauc install entirely
-  - For module-only changes, skip reboot: just `rmmod`/`insmod`
+- [x] **`make kernel-deploy BOARD=<ip>`** — implemented in
+  `scripts/kernel-deploy.sh`: linux-rebuild, scp zImage + DTB + full
+  /lib/modules tree to the active slot, depmod, reboot. Skips rootfs
+  rebuild, genimage, RAUC bundle, and rauc install. See
+  `doc/kernel-deploy.md`. Module-only `rmmod`/`insmod` path is still
+  handled by `scripts/deploy-kmod.sh`.
 - [ ] **`make module-deploy BOARD=<ip>`** — push just `*.ko` files and
   run `depmod -a` on target, no reboot needed
 

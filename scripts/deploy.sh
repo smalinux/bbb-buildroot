@@ -10,14 +10,17 @@ BOARD_IP="$1"
 BUNDLE_FILE="output/images/update.raucb"
 BOARD_PASS="${BOARD_PASS:-root}"
 
-# SSH options: skip host key checking (keys change on every reflash)
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
+# SSH options: skip host key checking (keys change on every reflash),
+# disable control master (avoids muxclient errors from stale sockets).
+SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR -o ControlMaster=no"
 
-# Check sshpass is available
-if ! command -v sshpass >/dev/null 2>&1; then
-    echo "Error: sshpass not found. Install it:"
-    echo "  sudo apt install sshpass"
-    exit 1
+# Use sshpass if available; otherwise plain ssh (key auth or interactive prompt).
+if command -v sshpass >/dev/null 2>&1; then
+    SSH="sshpass -p $BOARD_PASS ssh $SSH_OPTS root@${BOARD_IP}"
+    SCP="sshpass -p $BOARD_PASS scp -O $SSH_OPTS"
+else
+    SSH="ssh $SSH_OPTS root@${BOARD_IP}"
+    SCP="scp -O $SSH_OPTS"
 fi
 
 # Build
@@ -33,15 +36,15 @@ fi
 # Upload and install
 echo ""
 echo "Uploading bundle to ${BOARD_IP}..."
-sshpass -p "$BOARD_PASS" scp -O $SSH_OPTS "$BUNDLE_FILE" root@"${BOARD_IP}":/tmp/update.raucb
+$SCP "$BUNDLE_FILE" root@"${BOARD_IP}":/tmp/update.raucb
 
 echo "Installing bundle..."
-sshpass -p "$BOARD_PASS" ssh $SSH_OPTS root@"${BOARD_IP}" rauc install /tmp/update.raucb
+$SSH rauc install /tmp/update.raucb
 
 # Reboot
 echo ""
 echo "Rebooting board..."
-sshpass -p "$BOARD_PASS" ssh $SSH_OPTS root@"${BOARD_IP}" reboot || true
+$SSH reboot || true
 
 echo ""
 echo "OTA update deployed. Board is rebooting."
