@@ -132,7 +132,27 @@ define kmod_rebuild_all
 	fi
 endef
 
-.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild kernel-deploy module-deploy
+# ---------------------------------------------------------------------------
+# User config: ~/.config/bbb_buildroot_cfg
+# ---------------------------------------------------------------------------
+#
+# Board-specific settings (IP, password, TFTP dir, etc.) live in a single
+# user-level config file. `make bbb` writes it with BBB defaults; scripts
+# source scripts/config.sh which loads it automatically.
+#
+# The Makefile loads BOARD from the config so that deploy targets work
+# without an explicit BOARD=<ip> argument after initial setup.
+# ---------------------------------------------------------------------------
+BBB_CFG := $(HOME)/.config/bbb_buildroot_cfg
+ifneq ($(wildcard $(BBB_CFG)),)
+# Read BOARD from config only if not already set on the command line.
+# This lets `make kernel-deploy` Just Work after `make bbb`.
+ifeq ($(origin BOARD),undefined)
+BOARD := $(shell sed -n 's/^BOARD=//p' $(BBB_CFG))
+endif
+endif
+
+.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild kernel-deploy module-deploy bbb config
 
 all: $(OUTPUT_DIR)/.config
 	@# Auto-rebuild busybox if its fragment changed
@@ -200,13 +220,14 @@ rebuild:
 # Fast kernel deploy — skip RAUC/rootfs entirely. Overwrites zImage, DTB,
 # and /lib/modules on the running (active) slot. Dev-only shortcut; real
 # OTA must still go through `make bundle && ./scripts/deploy.sh`.
-# Requires BOARD=<ip> (e.g., `make kernel-deploy BOARD=192.168.1.100`).
+# Board IP comes from: BOARD=<ip> on CLI > ~/.config/bbb_buildroot_cfg > error.
 # Two-step: rebuild kernel, then deploy. Run the script alone
 # (./scripts/kernel-deploy.sh <ip>) to skip the rebuild when you've
 # already run `make linux-rebuild` yourself.
 kernel-deploy: $(OUTPUT_DIR)/.config
 	@if [ -z "$(BOARD)" ]; then \
-		echo "Usage: make kernel-deploy BOARD=<ip>"; exit 1; \
+		echo "Usage: make kernel-deploy BOARD=<ip>"; \
+		echo "  or run 'make bbb' first to set a default board."; exit 1; \
 	fi
 	$(BR_MAKE) linux-rebuild
 	./scripts/kernel-deploy.sh $(BOARD)
@@ -217,20 +238,68 @@ kernel-deploy: $(OUTPUT_DIR)/.config
 # Reload on target: modprobe -r <mod> && modprobe <mod>
 module-deploy: $(OUTPUT_DIR)/.config
 	@if [ -z "$(BOARD)" ]; then \
-		echo "Usage: make module-deploy BOARD=<ip>"; exit 1; \
+		echo "Usage: make module-deploy BOARD=<ip>"; \
+		echo "  or run 'make bbb' first to set a default board."; exit 1; \
 	fi
 	$(BR_MAKE) linux-rebuild
 	./scripts/module-deploy.sh $(BOARD)
-
-# Any other buildroot target: pass through
-%: $(OUTPUT_DIR)/.config
-	$(BR_MAKE) $@
 
 # Ensure submodule is initialized
 buildroot-check:
 	@if [ ! -f $(BUILDROOT_DIR)/Makefile ]; then \
 		echo "Initializing buildroot submodule..."; \
 		git submodule update --init --recursive; \
+	fi
+
+# Select a board by copying its template to the user config file.
+# Each board keeps a template at board/<name>/board.cfg. Adding a new
+# board = adding a directory + template + a two-line Makefile target:
+#   bbai:
+#   	$(call install-board-cfg,bbai)
+#
+# install-board-cfg(board):
+#   1. Copies board/<board>/board.cfg → ~/.config/bbb_buildroot_cfg
+#   2. Prints a confirmation message
+# Copies template only if no config exists yet. If the user already has
+# a config (possibly hand-edited), refuse to overwrite it. Use FORCE=1
+# to replace it: make bbb FORCE=1
+define install-board-cfg
+	@mkdir -p $(dir $(BBB_CFG))
+	@if [ -f $(BBB_CFG) ] && [ "$(FORCE)" != "1" ]; then \
+		echo "$(BBB_CFG) already exists (not overwritten)."; \
+		echo "To replace it with a fresh template: make $(1) FORCE=1"; \
+	else \
+		cp $(CURDIR)/board/$(1)/board.cfg $(BBB_CFG); \
+		echo ">>> Wrote $(BBB_CFG) (from board/$(1)/board.cfg)"; \
+		echo "    Edit it to set your board IP, then run make kernel-deploy etc."; \
+	fi
+endef
+
+bbb:
+	$(call install-board-cfg,bbb)
+
+# Print the active (resolved) config values. Sources config.sh so the
+# output reflects the full precedence chain: env > config file > defaults.
+# This is what scripts will actually see at runtime.
+config:
+	@. $(CURDIR)/scripts/config.sh; \
+	echo "Active config (env > ~/.config/bbb_buildroot_cfg > defaults):"; \
+	echo ""; \
+	if [ -n "$$BOARD_NAME" ]; then \
+		echo "  BOARD_NAME  = $$BOARD_NAME  (template: board/$$BOARD_NAME/board.cfg)"; \
+	else \
+		echo "  BOARD_NAME  = (not set)"; \
+	fi; \
+	echo "  BOARD       = $$BOARD"; \
+	echo "  BOARD_PASS  = $$BOARD_PASS"; \
+	echo "  DTB         = $$DTB"; \
+	echo "  TFTP_DIR    = $$TFTP_DIR"; \
+	echo "  OUTPUT_DIR  = $$OUTPUT_DIR"; \
+	echo ""; \
+	if [ -f $(BBB_CFG) ]; then \
+		echo "Config file: $(BBB_CFG)"; \
+	else \
+		echo "No config file. Run 'make bbb' to create one."; \
 	fi
 
 help:
@@ -244,7 +313,13 @@ help:
 	@echo "  make module-deploy BOARD=<ip> - push modules only (no reboot, reload with modprobe)"
 	@echo "  make rebuild        - clean rootfs + rebuild (no recompile)"
 	@echo "  make clean          - full clean (recompiles everything)"
+	@echo "  make bbb            - write ~/.config/bbb_buildroot_cfg with BBB defaults"
+	@echo "  make config         - show current board config"
 	@echo "  make help           - this message"
 	@echo ""
 	@echo "All standard buildroot targets are supported."
 	@echo "Config targets auto-save defconfig after closing."
+
+# Any other buildroot target: pass through (must be last — catch-all)
+%: $(OUTPUT_DIR)/.config
+	$(BR_MAKE) $@

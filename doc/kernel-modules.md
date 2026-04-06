@@ -244,7 +244,8 @@ Good for verifying the rootfs integration. Slow.
 
 ```bash
 make bundle
-./scripts/deploy.sh <board-ip>          # builds + uploads .raucb + rauc install + reboot
+./scripts/deploy.sh                     # uses BOARD from config (make bbb)
+./scripts/deploy.sh <board-ip>          # or pass IP explicitly
 ```
 
 ### Level 2 — direct scp (no OTA, no reboot)
@@ -270,7 +271,8 @@ The same steps wrapped in a script. Handles rebuild, locating the `.ko`,
 scp, rmmod/insmod, and dmesg tail:
 
 ```bash
-./scripts/deploy-kmod.sh kmod-hello <board-ip>
+./scripts/deploy-kmod.sh kmod-hello              # uses BOARD from config (make bbb)
+./scripts/deploy-kmod.sh kmod-hello <board-ip>   # or pass IP explicitly
 ```
 
 If the package produces multiple `.ko` files, pass the module name

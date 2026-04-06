@@ -38,12 +38,18 @@ sshpass -p "$BOARD_PASS" ssh ... root@<board-ip>
 ```
 
 The password defaults to `root` (matching the buildroot default set via
-`BR2_TARGET_GENERIC_ROOT_PASSWD="root"` in defconfig). Override it with
-the `BOARD_PASS` environment variable:
+`BR2_TARGET_GENERIC_ROOT_PASSWD="root"` in defconfig). Set it permanently
+in the board config file, or override per-command with an environment variable:
 
-```
+```bash
+# Permanent: edit ~/.config/bbb_buildroot_cfg (created by `make bbb`)
+BOARD_PASS=mypassword
+
+# Per-command override:
 BOARD_PASS=mypassword ./scripts/deploy.sh 192.168.0.98
 ```
+
+See `doc/user-config.md` for the full config file reference.
 
 ### Host prerequisite
 
@@ -62,10 +68,13 @@ The script checks for `sshpass` and exits with an error if it's missing.
 ## Usage
 
 ```bash
-# Default password (root)
+# If board config is set up (make bbb + edit IP), no arguments needed:
+./scripts/deploy.sh
+
+# Or pass IP explicitly:
 ./scripts/deploy.sh 192.168.0.98
 
-# Custom password
+# Custom password (or set BOARD_PASS in config):
 BOARD_PASS=secret ./scripts/deploy.sh 192.168.0.98
 ```
 

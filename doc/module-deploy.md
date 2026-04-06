@@ -11,15 +11,24 @@ image itself changed — use `make kernel-deploy` instead.
 ## Usage
 
 ```bash
-# Build + deploy in one step:
+# One-time setup: write board config with defaults, then edit the IP:
+make bbb
+vim ~/.config/bbb_buildroot_cfg
+
+# Build + deploy (reads BOARD from config):
+make module-deploy
+
+# Or pass BOARD explicitly (overrides config):
 make module-deploy BOARD=192.168.1.100
 
 # Or if you already ran `make linux-rebuild` yourself, skip the build:
 ./scripts/module-deploy.sh 192.168.1.100
 
-# Password override (defaults to "root"):
+# Password override (defaults to "root", or set BOARD_PASS in config):
 BOARD_PASS=secret ./scripts/module-deploy.sh 192.168.1.100
 ```
+
+See [doc/user-config.md](user-config.md) for the full config file reference.
 
 After deploying, reload the module on the board:
 

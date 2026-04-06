@@ -1,14 +1,19 @@
 #!/bin/bash
 set -e
 
-if [ -z "$1" ]; then
+# Load user config (BOARD, BOARD_PASS, DTB, etc.)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPT_DIR/config.sh"
+
+# Accept board IP as $1, fall back to BOARD from config.
+BOARD_IP="${1:-$BOARD}"
+if [ -z "$BOARD_IP" ]; then
     echo "Usage: $0 <board-ip>"
+    echo "  or set BOARD in ~/.config/bbb_buildroot_cfg (make bbb)"
     exit 1
 fi
 
-BOARD_IP="$1"
 BUNDLE_FILE="output/images/update.raucb"
-BOARD_PASS="${BOARD_PASS:-root}"
 
 # SSH options: skip host key checking (keys change on every reflash),
 # disable control master (avoids muxclient errors from stale sockets).

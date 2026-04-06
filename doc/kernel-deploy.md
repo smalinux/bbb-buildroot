@@ -12,18 +12,27 @@ bundle entirely.
 ## Usage
 
 ```bash
-# Build + deploy in one step:
+# One-time setup: write board config with defaults, then edit the IP:
+make bbb
+vim ~/.config/bbb_buildroot_cfg
+
+# Build + deploy (reads BOARD from config):
+make kernel-deploy
+
+# Or pass BOARD explicitly (overrides config):
 make kernel-deploy BOARD=192.168.1.100
 
 # Or if you already ran `make linux-rebuild` yourself, skip the build:
 ./scripts/kernel-deploy.sh 192.168.1.100
 
-# Password override (defaults to "root"):
+# Password override (defaults to "root", or set BOARD_PASS in config):
 BOARD_PASS=secret ./scripts/kernel-deploy.sh 192.168.1.100
 
-# Non-default DTB:
+# Non-default DTB (or set DTB in config):
 DTB=am335x-boneblack-wireless.dtb ./scripts/kernel-deploy.sh 192.168.1.100
 ```
+
+See [doc/user-config.md](user-config.md) for the full config file reference.
 
 ## What it does
 

@@ -32,16 +32,25 @@
 #
 set -euo pipefail
 
-if [ $# -lt 2 ]; then
-    echo "Usage: $0 <kmod-package> <board-ip> [<module-name>]" >&2
+# Load user config (BOARD, BOARD_PASS, DTB, etc.)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPT_DIR/config.sh"
+
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <kmod-package> [<board-ip>] [<module-name>]" >&2
     echo "Example: $0 kmod-hello 192.168.1.100" >&2
+    echo "  or set BOARD in ~/.config/bbb_buildroot_cfg (make bbb)" >&2
     exit 1
 fi
 
 KMOD_PKG="$1"
-BOARD_IP="$2"
+# Board IP: $2 if given, else BOARD from config.
+BOARD_IP="${2:-$BOARD}"
+if [ -z "$BOARD_IP" ]; then
+    echo "Error: no board IP. Pass as \$2 or set BOARD in config (make bbb)." >&2
+    exit 1
+fi
 MOD_NAME="${3:-}"
-BOARD_PASS="${BOARD_PASS:-root}"
 
 SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=ERROR"
 

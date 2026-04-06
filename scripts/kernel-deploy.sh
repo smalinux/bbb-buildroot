@@ -28,14 +28,17 @@
 #
 set -euo pipefail
 
-if [ -z "${1:-}" ]; then
+# Load user config (BOARD, BOARD_PASS, DTB, etc.)
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+. "$SCRIPT_DIR/config.sh"
+
+# Accept board IP as $1, fall back to BOARD from config.
+BOARD_IP="${1:-$BOARD}"
+if [ -z "$BOARD_IP" ]; then
     echo "Usage: $0 <board-ip>" >&2
+    echo "  or set BOARD in ~/.config/bbb_buildroot_cfg (make bbb)" >&2
     exit 1
 fi
-
-BOARD_IP="$1"
-BOARD_PASS="${BOARD_PASS:-root}"
-DTB="${DTB:-am335x-boneblack.dtb}"
 
 # --- helpers ---------------------------------------------------------------
 

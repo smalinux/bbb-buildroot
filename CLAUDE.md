@@ -15,10 +15,16 @@ make linux-menuconfig   # configure Linux kernel (auto-saves defconfig)
 make uboot-menuconfig   # configure U-Boot (auto-saves defconfig)
 make bundle             # build + generate RAUC OTA bundle
 make clean              # clean build output
+make bbb                # write ~/.config/bbb_buildroot_cfg with BBB defaults (one-time)
+make config             # show active board config (resolved: env > file > defaults)
 make kernel-deploy BOARD=<ip>   # fast kernel+modules push (reboots board, no OTA)
 make module-deploy BOARD=<ip>   # modules only push (no reboot, reload with modprobe)
 ./scripts/deploy.sh <board-ip>  # build, upload .raucb via SSH, install with rauc, reboot
 ```
+
+BOARD=<ip> is optional if `~/.config/bbb_buildroot_cfg` has BOARD set (see `make bbb`).
+Deploy scripts also read BOARD_PASS, DTB, TFTP_DIR, OUTPUT_DIR from the config file.
+See `doc/user-config.md` for details.
 
 ## Architecture
 
@@ -33,6 +39,7 @@ make module-deploy BOARD=<ip>   # modules only push (no reboot, reload with modp
 
 **Key config files**:
 - `defconfig` — full buildroot .config (tracked in git, `output/` is gitignored)
+- `board/bbb/board.cfg` — board config template (BOARD, BOARD_PASS, DTB, etc.); `make bbb` copies it to `~/.config/bbb_buildroot_cfg`
 - `board/bbb/system.conf` — RAUC system configuration (slot definitions, bootloader backend, keyring)
 - `board/bbb/rauc-keys/` — development signing keypair for RAUC bundles
 - `board/bbb/rootfs-overlay/etc/fw_env.config` — U-Boot env location on MMC (offset 0x200000)
