@@ -31,3 +31,10 @@ CONFIG_OMAP_WATCHDOG=y
 # Enables /proc/sysrq-trigger for testing watchdog reboot (echo c),
 # emergency sync (echo s), emergency remount-ro (echo u), etc.
 CONFIG_MAGIC_SYSRQ=y
+# --- initramfs support ---
+# BLK_DEV_INITRD: let the kernel accept an external initrd/initramfs
+# loaded by U-Boot (we do NOT embed the cpio — it's a separate file).
+CONFIG_BLK_DEV_INITRD=y
+CONFIG_RD_GZIP=y
+# overlayfs: used by initramfs to mount rootfs read-only + writable layer
+CONFIG_OVERLAY_FS=y

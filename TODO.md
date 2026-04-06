@@ -18,7 +18,7 @@ environment on the BeagleBone Black.
 - [x] systemd — init system
 - [x] RAUC — A/B OTA with signed bundles and automatic rollback
 - [x] BusyBox — fallback shell/tools
-- [ ] initramfs — early userspace (for recovery, overlayfs root)
+- [x] initramfs — early userspace (for recovery, overlayfs root)
 - [x] watchdog daemon — hardware watchdog, auto-recovery on hang
 
 ## Kernel Development

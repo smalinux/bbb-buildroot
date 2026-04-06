@@ -60,6 +60,12 @@ install -m 0644 -D "${BOARD_DIR}/systemd/watchdog.service" \
 ln -sf /usr/lib/systemd/system/watchdog.service \
     "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants/watchdog.service"
 
+# --- initramfs (recovery shell + overlayfs root) ---
+# Build a minimal cpio with busybox + /init, wrap as U-Boot ramdisk,
+# install to /boot/ so it's included in the rootfs.ext4 image and
+# updated via RAUC OTA alongside the kernel.
+"${BOARD_DIR}/mkinitrfs.sh" "${TARGET_DIR}"
+
 # --- Cleanup legacy SysV init scripts ---
 rm -f "${TARGET_DIR}/etc/init.d/S49ntp"
 rm -f "${TARGET_DIR}/etc/init.d/S99rauc-mark-good"

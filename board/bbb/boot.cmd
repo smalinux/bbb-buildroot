@@ -56,13 +56,19 @@ if test "${boot_mode}" = "tftp"; then
     tftp ${kernel_addr_r} ${tftp_dir}zImage
     tftp ${fdt_addr_r} ${tftp_dir}am335x-boneblack.dtb
 
+    # Load initramfs from TFTP if available (recovery + overlayfs support)
+    setenv initrd_args "-"
+    if tftp ${ramdisk_addr_r} ${tftp_dir}initramfs.uImage; then
+        setenv initrd_args "${ramdisk_addr_r}"
+    fi
+
     # Root from the active RAUC slot on MMC (default to partition 2 = slot A).
     # The user can override: fw_setenv root_part 3  (for slot B)
     if test -z "${root_part}"; then setenv root_part 2; fi
 
-    setenv bootargs "${base_args} root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait"
+    setenv bootargs "${base_args} root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait ${optargs}"
     echo "Booting TFTP kernel with MMC rootfs (partition ${root_part})..."
-    bootz ${kernel_addr_r} - ${fdt_addr_r}
+    bootz ${kernel_addr_r} ${initrd_args} ${fdt_addr_r}
 fi
 
 # ---------------------------------------------------------------------------
@@ -88,7 +94,7 @@ if test "${boot_mode}" = "nfs"; then
         exit
     fi
 
-    setenv bootargs "${base_args} root=/dev/nfs rw nfsroot=${serverip}:${nfs_dir},v3,tcp ip=dhcp"
+    setenv bootargs "${base_args} root=/dev/nfs rw nfsroot=${serverip}:${nfs_dir},v3,tcp ip=dhcp ${optargs}"
     echo "Booting NFS root from ${serverip}:${nfs_dir}..."
     bootz ${kernel_addr_r} - ${fdt_addr_r}
 fi
@@ -132,11 +138,22 @@ saveenv
 
 echo "Booting slot ${boot_slot} (partition ${root_part})"
 
-setenv bootargs "${base_args} root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait rauc.slot=${boot_slot}"
+# optargs: extra kernel cmdline args from U-Boot env (e.g. bbb.recovery,
+# bbb.overlayfs).  Set via: fw_setenv optargs bbb.recovery
+setenv bootargs "${base_args} root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait rauc.slot=${boot_slot} ${optargs}"
 
 # Load kernel and DTB from the active rootfs partition (/boot/)
 # so they are updated together with the rootfs via RAUC OTA.
 load mmc 0:${root_part} ${kernel_addr_r} boot/zImage
 load mmc 0:${root_part} ${fdt_addr_r} boot/am335x-boneblack.dtb
 
-bootz ${kernel_addr_r} - ${fdt_addr_r}
+# Load initramfs if present; boot without it otherwise (backward compat).
+# The initramfs provides a recovery shell (bbb.recovery) and overlayfs
+# root support (bbb.overlayfs).  U-Boot reads the size from the uImage
+# header, so no :${filesize} suffix is needed.
+setenv initrd_args "-"
+if load mmc 0:${root_part} ${ramdisk_addr_r} boot/initramfs.uImage; then
+    setenv initrd_args "${ramdisk_addr_r}"
+fi
+
+bootz ${kernel_addr_r} ${initrd_args} ${fdt_addr_r}

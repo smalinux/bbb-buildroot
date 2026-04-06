@@ -1,0 +1,137 @@
+#!/bin/sh
+#
+# /init — initramfs entry point for BeagleBone Black
+#
+# Provides two features over a direct kernel-to-rootfs boot:
+#
+#   1. Recovery shell  — add "bbb.recovery" to kernel cmdline to get a
+#      minimal busybox shell before rootfs is mounted. Useful when the
+#      rootfs is corrupt or you need to fsck / resize / inspect partitions.
+#
+#   2. Overlayfs root  — add "bbb.overlayfs" to kernel cmdline to mount
+#      the rootfs read-only with a writable overlay backed by the /data
+#      partition (/dev/mmcblk0p4). Keeps the rootfs pristine for OTA
+#      while allowing runtime changes. Falls back to tmpfs if /data is
+#      unavailable (changes lost on reboot).
+#
+# Without either flag, this script just mounts the rootfs normally and
+# hands off to /sbin/init — the only overhead is a sub-second delay.
+#
+# Kernel cmdline variables used:
+#   root=           root device (e.g. /dev/mmcblk0p2)
+#   rootfstype=     filesystem type (default: ext4)
+#   rootwait        wait for root device to appear
+#   bbb.recovery    drop to recovery shell
+#   bbb.overlayfs   mount rootfs read-only + writable overlay
+#
+
+# --- Mount virtual filesystems ---
+mount -t proc     proc     /proc
+mount -t sysfs    sysfs    /sys
+mount -t devtmpfs devtmpfs /dev
+
+# --- Parse kernel command line ---
+CMDLINE=$(cat /proc/cmdline)
+
+ROOT_DEV=""
+ROOT_FSTYPE="ext4"
+DO_ROOTWAIT=0
+DO_RECOVERY=0
+DO_OVERLAYFS=0
+
+for param in $CMDLINE; do
+    case "$param" in
+        root=*)       ROOT_DEV="${param#root=}" ;;
+        rootfstype=*) ROOT_FSTYPE="${param#rootfstype=}" ;;
+        rootwait)     DO_ROOTWAIT=1 ;;
+        bbb.recovery) DO_RECOVERY=1 ;;
+        bbb.overlayfs) DO_OVERLAYFS=1 ;;
+    esac
+done
+
+echo "initramfs: root=${ROOT_DEV} fstype=${ROOT_FSTYPE}"
+
+# --- Recovery mode ---
+if [ "$DO_RECOVERY" -eq 1 ]; then
+    echo ""
+    echo "========================================="
+    echo "  BBB Recovery Shell"
+    echo "========================================="
+    echo "  Root device : ${ROOT_DEV}"
+    echo "  Filesystem  : ${ROOT_FSTYPE}"
+    echo ""
+    echo "  Useful commands:"
+    echo "    mount -t ext4 ${ROOT_DEV} /mnt/root  # mount rootfs"
+    echo "    ls /mnt/root/                         # inspect"
+    echo "    reboot -f                             # force reboot"
+    echo ""
+    echo "  Type 'exit' to continue normal boot."
+    echo "========================================="
+    echo ""
+    /bin/sh
+    # User typed 'exit' — fall through to normal boot
+fi
+
+# --- Wait for root device ---
+if [ "$DO_ROOTWAIT" -eq 1 ] || [ ! -b "$ROOT_DEV" ]; then
+    echo "initramfs: waiting for ${ROOT_DEV}..."
+    TRIES=10
+    while [ ! -b "$ROOT_DEV" ] && [ "$TRIES" -gt 0 ]; do
+        sleep 1
+        TRIES=$((TRIES - 1))
+    done
+fi
+
+if [ ! -b "$ROOT_DEV" ]; then
+    echo "initramfs: ERROR — ${ROOT_DEV} not found after 10s!"
+    echo "Dropping to emergency shell..."
+    exec /bin/sh
+fi
+
+# --- Overlayfs mode ---
+if [ "$DO_OVERLAYFS" -eq 1 ]; then
+    echo "initramfs: overlayfs mode — rootfs read-only + writable overlay"
+
+    # Mount rootfs read-only as the lower layer
+    mount -t "$ROOT_FSTYPE" -o ro "$ROOT_DEV" /mnt/lower
+
+    # Use /data partition (mmcblk0p4) for persistent overlay storage.
+    # Falls back to tmpfs if unavailable (non-persistent).
+    DATA_DEV="/dev/mmcblk0p4"
+    if [ -b "$DATA_DEV" ]; then
+        mount -t ext4 "$DATA_DEV" /mnt/data
+        mkdir -p /mnt/data/overlay/upper /mnt/data/overlay/work
+        echo "initramfs: overlay backed by ${DATA_DEV} (persistent)"
+    else
+        echo "initramfs: WARNING — ${DATA_DEV} not found, using tmpfs (non-persistent)"
+        mount -t tmpfs tmpfs /mnt/data
+        mkdir -p /mnt/data/overlay/upper /mnt/data/overlay/work
+    fi
+
+    # Create the union mount
+    mount -t overlay overlay \
+        -o lowerdir=/mnt/lower,upperdir=/mnt/data/overlay/upper,workdir=/mnt/data/overlay/work \
+        /mnt/root
+
+# --- Normal mode ---
+else
+    mount -t "$ROOT_FSTYPE" -o rw "$ROOT_DEV" /mnt/root
+fi
+
+# --- Validate rootfs ---
+if [ ! -x /mnt/root/sbin/init ] && [ ! -L /mnt/root/sbin/init ]; then
+    echo "initramfs: ERROR — /sbin/init not found on rootfs!"
+    echo "Dropping to emergency shell (rootfs mounted at /mnt/root)..."
+    exec /bin/sh
+fi
+
+# --- Hand off to real init ---
+umount /proc
+umount /sys
+# switch_root moves devtmpfs and frees the initramfs
+exec switch_root /mnt/root /sbin/init
+
+# If we get here, something went wrong
+echo "initramfs: switch_root failed!"
+mount -t proc proc /proc
+exec /bin/sh

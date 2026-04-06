@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add initramfs early userspace — recovery shell (`bbb.recovery`), overlayfs root (`bbb.overlayfs`), graceful fallback if missing; built from target busybox during post-build
 - Add hardware watchdog daemon (OMAP WDT) — auto-reboots on system hang, monitors load and memory; enable Magic SysRq (`CONFIG_MAGIC_SYSRQ=y`) for crash testing
 - Add TFTP + NFS boot support — `make bbb` sets up TFTP symlinks + NFS export; `make tftp-boot`/`nfs-boot`/`mmc-boot` switch modes; U-Boot bootmenu for interactive selection on serial console
 - Add user-level board config (`~/.config/bbb_buildroot_cfg`) — `make bbb` copies `board/bbb/board.cfg` template, all deploy scripts read from it, CLI overrides still win; new boards just need a template + two-line Makefile target

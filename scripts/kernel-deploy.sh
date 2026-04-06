@@ -98,6 +98,7 @@ fi
 
 ZIMAGE="output/images/zImage"
 DTB_FILE="output/images/${DTB}"
+INITRAMFS="output/target/boot/initramfs.uImage"
 
 if [ ! -f "$ZIMAGE" ] || [ ! -f "$DTB_FILE" ]; then
     echo "Error: missing $ZIMAGE or $DTB_FILE" >&2
@@ -118,15 +119,26 @@ fi
 KO_COUNT=$(find "$MODULES_DIR" -name '*.ko' | wc -l)
 MODULES_SIZE=$(du -sh "$MODULES_DIR" | cut -f1)
 
-log "Kernel $KVER — zImage $(human "$ZIMAGE"), DTB $(human "$DTB_FILE"), ${KO_COUNT} modules (${MODULES_SIZE})"
+INITRD_INFO=""
+if [ -f "$INITRAMFS" ]; then
+    INITRD_INFO=", initramfs $(human "$INITRAMFS")"
+fi
+log "Kernel $KVER — zImage $(human "$ZIMAGE"), DTB $(human "$DTB_FILE")${INITRD_INFO}, ${KO_COUNT} modules (${MODULES_SIZE})"
 
 # --- deploy ----------------------------------------------------------------
 
 T0=$(date +%s)
 
 STEP_T=$(date +%s)
-log "Uploading zImage + $DTB to ${BOARD_IP}:/boot/..."
-run $SCP "$ZIMAGE" "$DTB_FILE" root@"${BOARD_IP}":/boot/
+# Upload kernel + DTB + initramfs (if it exists) in one scp call
+BOOT_FILES="$ZIMAGE $DTB_FILE"
+if [ -f "$INITRAMFS" ]; then
+    BOOT_FILES="$BOOT_FILES $INITRAMFS"
+    log "Uploading zImage + $DTB + initramfs to ${BOARD_IP}:/boot/..."
+else
+    log "Uploading zImage + $DTB to ${BOARD_IP}:/boot/..."
+fi
+run $SCP $BOOT_FILES root@"${BOARD_IP}":/boot/
 log "done ($(elapsed $STEP_T))"
 
 # Stream the modules tree as tar over ssh — avoids scp's per-file overhead
