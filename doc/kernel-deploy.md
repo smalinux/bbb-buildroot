@@ -66,7 +66,8 @@ is why this is a **development-only** shortcut.
 
 | Situation | Use |
 |---|---|
-| Iterating on a driver (.c edit → reload) | `./scripts/deploy-kmod.sh <pkg> <ip>` (no reboot) |
+| Iterating on a single out-of-tree kmodule | `./scripts/deploy-kmod.sh <pkg> <ip>` (insmod, no reboot) |
+| Iterating on in-tree modules (=m code) | `make module-deploy BOARD=<ip>` (no reboot) |
 | Iterating on kernel core, scheduler, DTS | `make kernel-deploy BOARD=<ip>` |
 | Verifying a release candidate end-to-end | `make bundle && ./scripts/deploy.sh <ip>` |
 | Release, CI, anything stored on disk | `make bundle && ./scripts/deploy.sh <ip>` |

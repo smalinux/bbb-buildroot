@@ -101,7 +101,7 @@ is 10-20x faster.
   rebuild, genimage, RAUC bundle, and rauc install. See
   `doc/kernel-deploy.md`. Module-only `rmmod`/`insmod` path is still
   handled by `scripts/deploy-kmod.sh`.
-- [ ] **`make module-deploy BOARD=<ip>`** — push just `*.ko` files and
+- [x] **`make module-deploy BOARD=<ip>`** — push just `*.ko` files and
   run `depmod -a` on target, no reboot needed
 
 ### TFTP + NFS Boot (Zero-Flash Development)

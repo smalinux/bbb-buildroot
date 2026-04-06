@@ -26,6 +26,7 @@ make linux-rebuild                # rebuild kernel (fast, when using OVERRIDE_SR
 # --- Deploy / flash ---
 ./scripts/deploy.sh <board-ip>            # build + upload .raucb + rauc install + reboot
 make kernel-deploy BOARD=<ip>             # fast: linux-rebuild + scp zImage/DTB/modules + reboot (no OTA)
+make module-deploy BOARD=<ip>             # fast: linux-rebuild + push modules only + depmod (no reboot)
 ./scripts/deploy-kmod.sh <pkg> <ip>       # fast: build one kmod, scp .ko, insmod (no OTA, no reboot)
 ./scripts/reset.sh                        # USB power-cycle BBB via uhubctl (brick recovery)
 sudo dd if=output/images/sdcard.img of=/dev/sdX bs=1M status=progress  # flash SD
@@ -424,9 +425,10 @@ Edit `BUNDLE_VERSION` in `board/bbb/post-image.sh`, then rebuild with `make bund
 ├── package/                    # custom external packages (see doc/custom-packages.md)
 │   └── hello-world/            # example: minimal C program
 ├── patches/                    # per-package patches (see doc/package-customization.md)
-├── scripts/                    # helper scripts (deploy, kernel-deploy, deploy-kmod, reset)
+├── scripts/                    # helper scripts (deploy, kernel-deploy, module-deploy, deploy-kmod, reset)
 │   ├── deploy.sh               # build + upload + install OTA bundle
 │   ├── kernel-deploy.sh        # fast kernel+modules push (no OTA, no bundle)
+│   ├── module-deploy.sh        # modules-only push + depmod (no reboot)
 │   ├── deploy-kmod.sh          # build + scp + insmod a single kernel module (no OTA)
 │   └── reset.sh                # USB power-cycle BBB via uhubctl
 ├── tests/                      # labgrid integration tests (pytest)

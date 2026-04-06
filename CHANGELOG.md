@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add `make module-deploy BOARD=<ip>` for fast module-only push (linux-rebuild + tar modules + depmod, no zImage, no reboot)
 - Add reboot=cold bootarg to fix intermittent "CCCCCCCC" hang on reboot (AM335x MMC not reset on warm reboot)
 - Move helper scripts (deploy.sh, deploy-kmod.sh, reset.sh) into scripts/ to declutter project root
 - Add `make kernel-deploy BOARD=<ip>` for fast kernel+modules push (linux-rebuild + scp zImage/DTB/modules + depmod + reboot, no RAUC bundle, no rootfs rebuild)

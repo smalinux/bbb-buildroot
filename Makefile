@@ -132,7 +132,7 @@ define kmod_rebuild_all
 	fi
 endef
 
-.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild kernel-deploy
+.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild kernel-deploy module-deploy
 
 all: $(OUTPUT_DIR)/.config
 	@# Auto-rebuild busybox if its fragment changed
@@ -211,6 +211,17 @@ kernel-deploy: $(OUTPUT_DIR)/.config
 	$(BR_MAKE) linux-rebuild
 	./scripts/kernel-deploy.sh $(BOARD)
 
+# Fast module-only deploy — push /lib/modules/<kver>/ to the board and run
+# depmod. No zImage, no DTB, no reboot. Use when you only changed code that
+# compiles as =m (loadable modules), not =y (built-in).
+# Reload on target: modprobe -r <mod> && modprobe <mod>
+module-deploy: $(OUTPUT_DIR)/.config
+	@if [ -z "$(BOARD)" ]; then \
+		echo "Usage: make module-deploy BOARD=<ip>"; exit 1; \
+	fi
+	$(BR_MAKE) linux-rebuild
+	./scripts/module-deploy.sh $(BOARD)
+
 # Any other buildroot target: pass through
 %: $(OUTPUT_DIR)/.config
 	$(BR_MAKE) $@
@@ -229,7 +240,8 @@ help:
 	@echo "  make menuconfig     - configure (auto-saves defconfig)"
 	@echo "  make linux-menuconfig - configure Linux kernel"
 	@echo "  make bundle         - build + generate RAUC OTA bundle"
-	@echo "  make kernel-deploy BOARD=<ip> - fast kernel/modules push (no OTA, no reboot-via-bundle)"
+	@echo "  make kernel-deploy BOARD=<ip> - fast kernel/modules push (no OTA, reboots board)"
+	@echo "  make module-deploy BOARD=<ip> - push modules only (no reboot, reload with modprobe)"
 	@echo "  make rebuild        - clean rootfs + rebuild (no recompile)"
 	@echo "  make clean          - full clean (recompiles everything)"
 	@echo "  make help           - this message"
