@@ -127,9 +127,11 @@ The fastest possible kernel iteration: no SD card writes at all.
 - [x] **ccache** — `BR2_CCACHE=y` — cache compilation results.
   Massive speedup for incremental kernel rebuilds after `make clean`.
   First build is same speed, subsequent rebuilds 2-5x faster.
-- [x] **per-package directories** — `BR2_PER_PACKAGE_DIRECTORIES=y` —
+- [ ] **per-package directories** — `BR2_PER_PACKAGE_DIRECTORIES=y` —
   enables parallel package builds. Reduces full rebuild time on
-  multi-core hosts.
+  multi-core hosts. Skipped for now: buildroot's per-package directory
+  support is not mature enough — skeleton-init-systemd breaks on
+  incremental rebuilds (stale symlinks in per-package target dirs).
 
 ### SSH Key Authentication
 

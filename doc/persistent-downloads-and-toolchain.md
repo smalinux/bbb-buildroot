@@ -1,4 +1,4 @@
-# Persistent Downloads, Toolchain, Ccache, and Parallel Builds
+# Persistent Downloads, Toolchain, and Ccache
 
 ## What
 
@@ -30,7 +30,6 @@ BR2_HOST_DIR="$(BR2_EXTERNAL_BBB_PATH)/toolchain"
 BR2_CCACHE=y
 BR2_CCACHE_DIR="$(BR2_EXTERNAL_BBB_PATH)/ccache"
 BR2_CCACHE_USE_BASEDIR=y
-BR2_PER_PACKAGE_DIRECTORIES=y
 ```
 
 `BR2_EXTERNAL_BBB_PATH` resolves to the project root (the BR2_EXTERNAL
@@ -38,19 +37,6 @@ directory named `BBB` in `external.desc`), keeping paths portable.
 
 `BR2_CCACHE_USE_BASEDIR=y` makes cache hits work even if the absolute
 build path changes (e.g. different checkout location).
-
-`BR2_PER_PACKAGE_DIRECTORIES=y` gives each package its own isolated
-`host/` and `target/` directories under `output/per-package/<pkg>/`.
-This serves two purposes:
-
-1. **Build isolation** — a package can only see headers and libraries
-   from its explicitly declared dependencies, not from packages that
-   happened to build first. Catches missing dependency declarations.
-2. **Top-level parallel build** — because packages are isolated, the
-   Makefile can build independent packages concurrently with `make -jN`.
-
-The wrapper Makefile passes `-j$(NPROC)` (defaults to `nproc + 1`) to
-the main build. Override with `make NPROC=4` if you want fewer jobs.
 
 ## Selective rebuilds
 
