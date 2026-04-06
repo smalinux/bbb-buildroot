@@ -66,6 +66,8 @@ make
 
 The first build compiles the entire toolchain, kernel, U-Boot, and all packages from source. Subsequent builds are incremental and much faster.
 
+Builds run with top-level parallelism (`-j$(nproc+1)`) thanks to per-package directories. To limit jobs (e.g. on RAM-constrained hosts): `make NPROC=4`.
+
 Output images are placed in `output/images/`:
 - `sdcard.img` — full SD card image (boot + rootfsA + rootfsB + data)
 - `update.raucb` — signed RAUC bundle for OTA updates

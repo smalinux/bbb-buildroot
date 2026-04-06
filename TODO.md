@@ -124,10 +124,10 @@ The fastest possible kernel iteration: no SD card writes at all.
 
 ### Host Build Acceleration
 
-- [ ] **ccache** — `BR2_CCACHE=y` — cache compilation results.
+- [x] **ccache** — `BR2_CCACHE=y` — cache compilation results.
   Massive speedup for incremental kernel rebuilds after `make clean`.
   First build is same speed, subsequent rebuilds 2-5x faster.
-- [ ] **per-package directories** — `BR2_PER_PACKAGE_DIRECTORIES=y` —
+- [x] **per-package directories** — `BR2_PER_PACKAGE_DIRECTORIES=y` —
   enables parallel package builds. Reduces full rebuild time on
   multi-core hosts.
 

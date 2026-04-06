@@ -5,6 +5,14 @@ LOCAL_MK      := $(CURDIR)/local.mk
 
 BR_MAKE := $(MAKE) -C $(BUILDROOT_DIR) O=$(OUTPUT_DIR) BR2_EXTERNAL=$(CURDIR)
 
+# Top-level parallel build — BR2_PER_PACKAGE_DIRECTORIES isolates each
+# package's host/target dirs, which makes it safe to build independent
+# packages concurrently.  NPROC defaults to (nproc + 1), matching the
+# same formula buildroot uses for BR2_JLEVEL=0 inside each package.
+# Override with: make NPROC=4
+NPROC ?= $(shell echo $$(( $$(nproc) + 1 )))
+BR_MAKE_PARALLEL := $(BR_MAKE) -j$(NPROC)
+
 # Targets that should auto-save defconfig after running
 CONFIG_TARGETS := menuconfig nconfig xconfig gconfig linux-menuconfig uboot-menuconfig busybox-menuconfig
 
@@ -178,7 +186,7 @@ all: $(OUTPUT_DIR)/.config
 	# never re-checks the source. Without this loop, editing a .c file and
 	# running `make` would silently ship the stale .ko.
 	$(call kmod_rebuild_all)
-	$(BR_MAKE)
+	$(BR_MAKE_PARALLEL)
 
 # Load saved defconfig into output on first build
 $(OUTPUT_DIR)/.config: $(DEFCONFIG) | buildroot-check
@@ -202,7 +210,7 @@ beaglebone_defconfig: | buildroot-check
 
 # Generate RAUC update bundle (rebuild rootfs + package it)
 bundle: $(OUTPUT_DIR)/.config
-	$(BR_MAKE)
+	$(BR_MAKE_PARALLEL)
 	@echo ""
 	@echo "Output:"
 	@echo "  SD card image: $(OUTPUT_DIR)/images/sdcard.img"
