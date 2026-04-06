@@ -24,3 +24,10 @@ CONFIG_NFS_V4=y
 CONFIG_ROOT_NFS=y
 CONFIG_IP_PNP=y
 CONFIG_IP_PNP_DHCP=y
+# --- Hardware watchdog (AM335x OMAP WDT) ---
+CONFIG_WATCHDOG=y
+CONFIG_OMAP_WATCHDOG=y
+# --- Magic SysRq — emergency kernel debug/crash triggers ---
+# Enables /proc/sysrq-trigger for testing watchdog reboot (echo c),
+# emergency sync (echo s), emergency remount-ro (echo u), etc.
+CONFIG_MAGIC_SYSRQ=y

@@ -1,0 +1,15 @@
+[Unit]
+Description=Hardware watchdog daemon (OMAP WDT)
+After=local-fs.target
+# Start early so the board is protected as soon as possible.
+# If watchdog can't open /dev/watchdog0, it exits — no harm.
+ConditionPathExists=/dev/watchdog0
+
+[Service]
+Type=forking
+ExecStart=/sbin/watchdog -c /etc/watchdog.conf
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

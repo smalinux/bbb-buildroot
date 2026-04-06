@@ -19,7 +19,7 @@ environment on the BeagleBone Black.
 - [x] RAUC — A/B OTA with signed bundles and automatic rollback
 - [x] BusyBox — fallback shell/tools
 - [ ] initramfs — early userspace (for recovery, overlayfs root)
-- [ ] watchdog daemon — hardware watchdog, auto-recovery on hang
+- [x] watchdog daemon — hardware watchdog, auto-recovery on hang
 
 ## Kernel Development
 

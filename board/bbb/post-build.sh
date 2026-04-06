@@ -54,6 +54,12 @@ install -m 0644 -D "${BOARD_DIR}/systemd/rauc-mark-good.service" \
 ln -sf /usr/lib/systemd/system/rauc-mark-good.service \
     "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants/rauc-mark-good.service"
 
+# --- Service: watchdog (hardware watchdog daemon) ---
+install -m 0644 -D "${BOARD_DIR}/systemd/watchdog.service" \
+    "${TARGET_DIR}/usr/lib/systemd/system/watchdog.service"
+ln -sf /usr/lib/systemd/system/watchdog.service \
+    "${TARGET_DIR}/usr/lib/systemd/system/multi-user.target.wants/watchdog.service"
+
 # --- Cleanup legacy SysV init scripts ---
 rm -f "${TARGET_DIR}/etc/init.d/S49ntp"
 rm -f "${TARGET_DIR}/etc/init.d/S99rauc-mark-good"
