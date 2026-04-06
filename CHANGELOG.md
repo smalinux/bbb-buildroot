@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- Add TFTP + NFS boot support — `make bbb` sets up TFTP symlinks + NFS export; `make tftp-boot`/`nfs-boot`/`mmc-boot` switch modes; U-Boot bootmenu for interactive selection on serial console
 - Add user-level board config (`~/.config/bbb_buildroot_cfg`) — `make bbb` copies `board/bbb/board.cfg` template, all deploy scripts read from it, CLI overrides still win; new boards just need a template + two-line Makefile target
 - Add `make module-deploy BOARD=<ip>` for fast module-only push (linux-rebuild + tar modules + depmod, no zImage, no reboot)
 - Add reboot=cold bootarg to fix intermittent "CCCCCCCC" hang on reboot (AM335x MMC not reset on warm reboot)

@@ -42,7 +42,7 @@ _cfg_restore() {
 }
 
 _cfg_save BOARD_NAME; _cfg_save BOARD; _cfg_save BOARD_PASS; _cfg_save DTB
-_cfg_save TFTP_DIR; _cfg_save OUTPUT_DIR
+_cfg_save TFTP_DIR; _cfg_save OUTPUT_DIR; _cfg_save HOST_IP; _cfg_save NFS_DIR
 
 if [ -f "$BBB_CFG" ]; then
     _config_had_u=false
@@ -54,7 +54,7 @@ fi
 
 # Restore env overrides (env wins over file).
 _cfg_restore BOARD_NAME; _cfg_restore BOARD; _cfg_restore BOARD_PASS; _cfg_restore DTB
-_cfg_restore TFTP_DIR; _cfg_restore OUTPUT_DIR
+_cfg_restore TFTP_DIR; _cfg_restore OUTPUT_DIR; _cfg_restore HOST_IP; _cfg_restore NFS_DIR
 unset -f _cfg_save _cfg_restore
 
 # --- Fallback defaults ----------------------------------------------------
@@ -66,3 +66,10 @@ BOARD_PASS="${BOARD_PASS:-root}"
 DTB="${DTB:-am335x-boneblack.dtb}"
 TFTP_DIR="${TFTP_DIR:-/srv/tftp}"
 OUTPUT_DIR="${OUTPUT_DIR:-output}"
+# HOST_IP: auto-detect from the route to BOARD if not explicitly set.
+# `ip route get <BOARD>` returns the source IP the kernel would use.
+if [ -z "${HOST_IP:-}" ] && [ -n "${BOARD:-}" ]; then
+    HOST_IP="$(ip route get "$BOARD" 2>/dev/null | sed -n 's/.* src \([^ ]*\).*/\1/p')"
+fi
+HOST_IP="${HOST_IP:-}"
+NFS_DIR="${NFS_DIR:-$(pwd)/output/target}"

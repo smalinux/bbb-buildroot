@@ -152,7 +152,7 @@ BOARD := $(shell sed -n 's/^BOARD=//p' $(BBB_CFG))
 endif
 endif
 
-.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild kernel-deploy module-deploy bbb config
+.PHONY: all $(CONFIG_TARGETS) defconfig-load defconfig-save help bundle rebuild kernel-deploy module-deploy mmc-boot tftp-boot nfs-boot bbb config
 
 all: $(OUTPUT_DIR)/.config
 	@# Auto-rebuild busybox if its fragment changed
@@ -244,6 +244,30 @@ module-deploy: $(OUTPUT_DIR)/.config
 	$(BR_MAKE) linux-rebuild
 	./scripts/module-deploy.sh $(BOARD)
 
+# Switch boot mode — SSHes to the board, sets boot_mode via fw_setenv,
+# reboots. TFTP symlinks are set up by `make bbb`, so every `make`
+# automatically updates what U-Boot fetches — no deploy step needed.
+mmc-boot:
+	@if [ -z "$(BOARD)" ]; then \
+		echo "Usage: make mmc-boot BOARD=<ip>"; \
+		echo "  or run 'make bbb' first to set a default board."; exit 1; \
+	fi
+	./scripts/boot-mode.sh mmc $(BOARD)
+
+tftp-boot:
+	@if [ -z "$(BOARD)" ]; then \
+		echo "Usage: make tftp-boot BOARD=<ip>"; \
+		echo "  or run 'make bbb' first to set a default board."; exit 1; \
+	fi
+	./scripts/boot-mode.sh tftp $(BOARD)
+
+nfs-boot:
+	@if [ -z "$(BOARD)" ]; then \
+		echo "Usage: make nfs-boot BOARD=<ip>"; \
+		echo "  or run 'make bbb' first to set a default board."; exit 1; \
+	fi
+	./scripts/boot-mode.sh nfs $(BOARD)
+
 # Ensure submodule is initialized
 buildroot-check:
 	@if [ ! -f $(BUILDROOT_DIR)/Makefile ]; then \
@@ -271,8 +295,12 @@ define install-board-cfg
 	else \
 		cp $(CURDIR)/board/$(1)/board.cfg $(BBB_CFG); \
 		echo ">>> Wrote $(BBB_CFG) (from board/$(1)/board.cfg)"; \
-		echo "    Edit it to set your board IP, then run make kernel-deploy etc."; \
+		echo "    Edit it to set your board IP, HOST_IP, etc."; \
 	fi
+	@# Set up TFTP symlinks + NFS export based on the config file.
+	@# Symlinks mean every `make` automatically updates what U-Boot
+	@# fetches — no separate deploy step needed.
+	./scripts/netboot-setup.sh
 endef
 
 bbb:
@@ -295,6 +323,8 @@ config:
 	echo "  DTB         = $$DTB"; \
 	echo "  TFTP_DIR    = $$TFTP_DIR"; \
 	echo "  OUTPUT_DIR  = $$OUTPUT_DIR"; \
+	echo "  HOST_IP     = $$HOST_IP"; \
+	echo "  NFS_DIR     = $$NFS_DIR"; \
 	echo ""; \
 	if [ -f $(BBB_CFG) ]; then \
 		echo "Config file: $(BBB_CFG)"; \
@@ -309,8 +339,11 @@ help:
 	@echo "  make menuconfig     - configure (auto-saves defconfig)"
 	@echo "  make linux-menuconfig - configure Linux kernel"
 	@echo "  make bundle         - build + generate RAUC OTA bundle"
-	@echo "  make kernel-deploy BOARD=<ip> - fast kernel/modules push (no OTA, reboots board)"
-	@echo "  make module-deploy BOARD=<ip> - push modules only (no reboot, reload with modprobe)"
+	@echo "  make kernel-deploy  - fast kernel/modules push (no OTA, reboots board)"
+	@echo "  make module-deploy  - push modules only (no reboot, reload with modprobe)"
+	@echo "  make tftp-boot      - switch board to TFTP boot + reboot"
+	@echo "  make nfs-boot       - switch board to NFS boot + reboot"
+	@echo "  make mmc-boot       - switch board back to SD card boot + reboot"
 	@echo "  make rebuild        - clean rootfs + rebuild (no recompile)"
 	@echo "  make clean          - full clean (recompiles everything)"
 	@echo "  make bbb            - write ~/.config/bbb_buildroot_cfg with BBB defaults"

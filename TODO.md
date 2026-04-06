@@ -108,18 +108,18 @@ is 10-20x faster.
 
 The fastest possible kernel iteration: no SD card writes at all.
 
-- [ ] **TFTP kernel loading** — U-Boot loads zImage + DTB from host
+- [x] **TFTP kernel loading** — U-Boot loads zImage + DTB from host
   via TFTP instead of from SD card. Edit `boot.cmd` to add a
   `tftp-boot` path that tries network first, falls back to SD card.
   - Requires: host TFTP server (tftpd-hpa), U-Boot network configured
   - Kernel iteration becomes: recompile → copy to /tftpboot → reboot BBB
-- [ ] **NFS rootfs** — mount rootfs over NFS from the host machine.
+- [x] **NFS rootfs** — mount rootfs over NFS from the host machine.
   Eliminates SD card writes entirely during development.
   - Requires: host NFS server, kernel `CONFIG_ROOT_NFS=y`,
     `CONFIG_NFS_V4=y`, U-Boot bootargs `root=/dev/nfs nfsroot=...`
   - Changes to rootfs are instant — no rebuild, no deploy, no reboot
   - Add `nfs-boot.cmd` as alternative boot script
-- [ ] **`make nfsroot`** — Makefile target to export `output/target/`
+- [x] **`make nfsroot`** — Makefile target to export `output/target/`
   via NFS for direct BBB boot (add docs for host NFS setup)
 
 ### Host Build Acceleration

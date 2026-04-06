@@ -15,14 +15,18 @@ make linux-menuconfig   # configure Linux kernel (auto-saves defconfig)
 make uboot-menuconfig   # configure U-Boot (auto-saves defconfig)
 make bundle             # build + generate RAUC OTA bundle
 make clean              # clean build output
-make bbb                # write ~/.config/bbb_buildroot_cfg with BBB defaults (one-time)
+make bbb                # write config + set up TFTP symlinks + NFS export (one-time)
 make config             # show active board config (resolved: env > file > defaults)
-make kernel-deploy BOARD=<ip>   # fast kernel+modules push (reboots board, no OTA)
-make module-deploy BOARD=<ip>   # modules only push (no reboot, reload with modprobe)
+make kernel-deploy      # fast kernel+modules push (reboots board, no OTA)
+make module-deploy      # modules only push (no reboot, reload with modprobe)
+make tftp-boot          # switch board to TFTP boot + reboot
+make nfs-boot           # switch board to NFS boot + reboot
+make mmc-boot           # switch board back to SD card boot + reboot
 ./scripts/deploy.sh <board-ip>  # build, upload .raucb via SSH, install with rauc, reboot
 ```
 
-BOARD=<ip> is optional if `~/.config/bbb_buildroot_cfg` has BOARD set (see `make bbb`).
+All targets that need a board IP read BOARD from `~/.config/bbb_buildroot_cfg` automatically.
+Override on the command line with `BOARD=<ip>` if needed.
 Deploy scripts also read BOARD_PASS, DTB, TFTP_DIR, OUTPUT_DIR from the config file.
 See `doc/user-config.md` for details.
 

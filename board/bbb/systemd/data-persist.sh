@@ -18,6 +18,14 @@
 
 set -eu
 
+# Skip bind mounts on NFS root — the whole rootfs is already live on the
+# host, and /data (mmcblk0p4) would shadow NFS-served directories.
+rootfstype=$(awk '$2 == "/" {print $3}' /proc/mounts)
+if [ "$rootfstype" = "nfs" ] || [ "$rootfstype" = "nfs4" ]; then
+    echo "data-persist: NFS root detected, skipping bind mounts."
+    exit 0
+fi
+
 # All persistent bind mounts: /data source → rootfs destination.
 # Add new entries here — start and stop are handled automatically.
 MOUNTS="

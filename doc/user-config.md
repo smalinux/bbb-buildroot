@@ -36,8 +36,10 @@ OUTPUT_DIR=output
 | `BOARD`      | *(none)*                 | all deploy scripts, Makefile targets |
 | `BOARD_PASS` | `root`                   | sshpass in deploy scripts            |
 | `DTB`        | `am335x-boneblack.dtb`  | kernel-deploy.sh                     |
-| `TFTP_DIR`   | `/srv/tftp`              | reserved for future TFTP boot        |
+| `TFTP_DIR`   | `/srv/tftp`              | TFTP server directory (tftp-deploy)  |
 | `OUTPUT_DIR` | `output`                 | reserved for multi-board builds      |
+| `HOST_IP`    | *(auto-detected)*        | host machine IP (auto from route to BOARD) |
+| `NFS_DIR`    | `output/target`          | NFS export path for nfs boot mode    |
 
 ## Precedence
 

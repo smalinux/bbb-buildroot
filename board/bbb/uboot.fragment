@@ -16,3 +16,5 @@ CONFIG_SYS_MMC_ENV_DEV=0
 CONFIG_ENV_OFFSET=0x200000
 # setexpr is needed by boot.cmd for bootchooser counter arithmetic
 CONFIG_CMD_SETEXPR=y
+# Boot menu — interactive mode selection (mmc / tftp / nfs) on serial console
+CONFIG_CMD_BOOTMENU=y

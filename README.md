@@ -23,11 +23,15 @@ make <pkg>-dirclean               # wipe one package's build dir
 make <pkg>-reconfigure            # re-run configure step
 make linux-rebuild                # rebuild kernel (fast, when using OVERRIDE_SRCDIR)
 
-# --- Deploy / flash ---
+# --- Deploy / flash (BOARD is read from config; override with BOARD=<ip>) ---
 ./scripts/deploy.sh <board-ip>            # build + upload .raucb + rauc install + reboot
-make kernel-deploy BOARD=<ip>             # fast: linux-rebuild + scp zImage/DTB/modules + reboot (no OTA)
-make module-deploy BOARD=<ip>             # fast: linux-rebuild + push modules only + depmod (no reboot)
+make kernel-deploy                        # fast: linux-rebuild + scp zImage/DTB/modules + reboot (no OTA)
+make kernel-deploy BOARD=10.0.0.5         # same, explicit IP (overrides config)
+make module-deploy                        # fast: linux-rebuild + push modules only + depmod (no reboot)
 ./scripts/deploy-kmod.sh <pkg> <ip>       # fast: build one kmod, scp .ko, insmod (no OTA, no reboot)
+make tftp-boot                            # switch board to TFTP boot + reboot
+make nfs-boot                             # switch board to NFS boot + reboot
+make mmc-boot                             # switch board back to SD card boot + reboot
 ./scripts/reset.sh                        # USB power-cycle BBB via uhubctl (brick recovery)
 sudo dd if=output/images/sdcard.img of=/dev/sdX bs=1M status=progress  # flash SD
 
@@ -82,6 +86,9 @@ Output images are placed in `output/images/`:
 | `make bundle` | Build + generate RAUC OTA bundle | Same as `make`, with output paths printed |
 | `make rebuild` | Wipe rootfs + rebuild (no recompile) | After disabling packages |
 | `make clean` | Full clean (deletes everything in output/) | Nuclear option — recompiles from scratch |
+| `make tftp-boot` | Switch board to TFTP boot + reboot | Network kernel (TFTP symlinks auto-update) |
+| `make nfs-boot` | Switch board to NFS boot + reboot | Network kernel + rootfs |
+| `make mmc-boot` | Switch board back to SD card boot + reboot | Return to normal boot |
 | `make help` | List available targets | |
 
 All standard buildroot targets (e.g., `make busybox-rebuild`, `make linux-dirclean`) are passed through to buildroot.
