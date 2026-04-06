@@ -41,7 +41,9 @@ saveenv
 
 echo "Booting slot ${boot_slot} (partition ${root_part})"
 
-setenv bootargs console=ttyS0,115200n8 root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait rauc.slot=${boot_slot}
+# reboot=cold: use cold reset (PRM_RSTCTRL bit 1) so the MMC controller
+# is fully re-initialised — prevents ROM bootloader "CCCCCCCC" hang.
+setenv bootargs console=ttyS0,115200n8 reboot=cold root=/dev/mmcblk0p${root_part} rw rootfstype=ext4 rootwait rauc.slot=${boot_slot}
 
 # Load kernel and DTB from the active rootfs partition (/boot/)
 # so they are updated together with the rootfs via RAUC OTA.
