@@ -5,7 +5,7 @@ BOARD_DIR="$(dirname "$0")"
 BINARIES_DIR="${BINARIES_DIR:-${0%/*}/../../output/images}"
 
 # Parse args: --bundle-version VERSION
-BUNDLE_VERSION="0.1.0"
+BUNDLE_VERSION="1.1"
 while [ $# -gt 0 ]; do
     case "$1" in
         --bundle-version) BUNDLE_VERSION="$2"; shift 2 ;;

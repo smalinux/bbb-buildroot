@@ -2,7 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
-## [Unreleased]
+## [1.1] - 2026-04-18
+
+Kernel development workflow release — initramfs with recovery shell, hardware watchdog auto-recovery, TFTP/NFS zero-flash boot, user-level board config, and fast kernel/module deploy paths.
+
 
 - Add initramfs early userspace — recovery shell (`bbb.recovery`), overlayfs root (`bbb.overlayfs`), graceful fallback if missing; built from target busybox during post-build
 - Add hardware watchdog daemon (OMAP WDT) — auto-reboots on system hang, monitors load and memory; enable Magic SysRq (`CONFIG_MAGIC_SYSRQ=y`) for crash testing
