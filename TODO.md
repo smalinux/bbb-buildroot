@@ -642,3 +642,290 @@ Current rootfs: ~256 MB partition (512 MB per slot in genimage.cfg).
 Fits comfortably in the 512 MB rootfs partition. WiFi firmware blobs
 can be large (ath10k firmware alone is ~5 MB) — select only the chips
 you're actually working with via `BR2_PACKAGE_LINUX_FIRMWARE_*`.
+
+---
+
+## Level Up: Advanced Embedded Linux Engineering
+
+Projects and goals that go beyond interfacing peripherals. These prove
+deep understanding of the Linux kernel, the ARM platform, and
+production embedded systems. Each one is a real skill that senior
+embedded engineers are expected to have.
+
+### 1. Upstream a Patch to the Linux Kernel
+
+The single most credible proof of competence. Doesn't have to be big —
+a one-line fix in a driver, a device tree correction, a documentation
+improvement. What matters is navigating the full process:
+
+- [ ] Find a real bug or improvement in an AM335x-related driver
+- [ ] Write the patch following `Documentation/process/submitting-patches.rst`
+- [ ] Run `checkpatch.pl`, `sparse`, `make W=1` — zero warnings
+- [ ] Format with `git format-patch`, send with `git send-email`
+- [ ] Handle review feedback from the maintainer
+- [ ] Get a `Signed-off-by` in Linus's tree
+
+Start by reading `drivers/` code for AM335x peripherals (TSCADC, PWM,
+GPIO, I2C, SPI, PRUSS) — there are always documentation gaps, missing
+error paths, or device tree binding improvements.
+
+### 2. Write a Full Platform Driver (Not Just a Char Device)
+
+A proper Linux driver that plugs into a kernel subsystem — not a
+`/dev/mydevice` char device tutorial, but a real subsystem citizen:
+
+- [ ] **IIO ADC driver** — write a driver for an external ADC chip
+  (e.g., ADS1115 on I2C) that registers with the IIO subsystem.
+  Expose channels via `/sys/bus/iio/`, support triggered buffering,
+  and handle power management (runtime PM suspend when idle).
+- [ ] **Input subsystem driver** — write a driver for a rotary encoder
+  or button matrix that registers as an `input_dev`. Generates proper
+  `EV_KEY`/`EV_REL` events, works with `evtest`, and wakes from
+  suspend.
+- [ ] **hwmon driver** — write a hardware monitoring driver for a
+  temperature/voltage sensor (e.g., TMP102, INA219) that exposes
+  readings via the hwmon sysfs interface and triggers alarms.
+- [ ] **LED subsystem driver** — write a driver that controls LEDs via
+  a GPIO expander (e.g., PCA9535 on I2C) and registers with the LED
+  subsystem. Support triggers (heartbeat, netdev, timer).
+- [ ] **Regmap-based driver** — use the regmap API (not raw
+  `i2c_smbus_*` calls) for register access. This is how all modern
+  kernel drivers are written. Implement regmap with cache, volatile
+  registers, and debugfs register dump.
+
+### 3. PREEMPT_RT Real-Time Linux
+
+Make the BBB a hard real-time system. This is a core skill for
+industrial, automotive, and robotics embedded Linux:
+
+- [ ] Apply the PREEMPT_RT patch to the kernel
+- [ ] Configure `CONFIG_PREEMPT_RT=y` (fully preemptible kernel)
+- [ ] Write a cyclic RT task using `SCHED_FIFO` + `clock_nanosleep()`
+- [ ] Measure worst-case latency with `cyclictest` — target < 100 μs
+- [ ] Tune: isolate a CPU with `isolcpus`, disable kernel threads on
+  the RT core, set IRQ affinity
+- [ ] Compare latency histograms: vanilla vs PREEMPT_RT vs tuned RT
+- [ ] Write a real-time GPIO toggle loop and measure jitter with an
+  oscilloscope — prove deterministic timing
+- [ ] Document which kernel configs and boot params affect latency
+
+### 4. PRU Programming (BBB's Real-Time Co-Processors)
+
+The AM335x has two 200 MHz PRU-ICSS cores — bare-metal co-processors
+that share GPIO pins with the ARM core. This is unique to the BBB and
+a killer feature for real-time I/O:
+
+- [ ] Set up the TI PRU Software Support Package and compiler
+- [ ] Write PRU firmware that toggles a GPIO at a precise frequency
+  (e.g., 1 MHz square wave — impossible from Linux userspace)
+- [ ] Establish ARM↔PRU communication via RPMsg (remoteproc messaging)
+- [ ] Implement a custom protocol: ARM sends commands, PRU executes
+  time-critical I/O, reports results back
+- [ ] Write a Linux remoteproc driver that loads PRU firmware and
+  exposes a char device or sysfs interface to userspace
+- [ ] **Project: PRU-based logic analyzer** — capture GPIO state
+  changes at 100+ MHz sample rate, DMA to shared memory, read from
+  Linux. A real embedded instrument.
+- [ ] **Project: PRU-based WS2812 LED driver** — drive addressable
+  LEDs with precise 800 KHz timing from the PRU, controlled via
+  Linux sysfs
+
+### 5. Power Management — Suspend/Resume & Runtime PM
+
+Most embedded products run on batteries. Deep power management is
+a hard, valuable skill:
+
+- [ ] Implement system suspend-to-RAM (`echo mem > /sys/power/state`)
+  on BBB — debug every driver that blocks suspend
+- [ ] Add a wakeup source: RTC alarm, GPIO button, or network (WoL)
+- [ ] Implement runtime PM in your own driver: auto-suspend the
+  device after idle timeout, auto-resume on access
+- [ ] Measure power consumption with a current shunt (INA219) during
+  active, idle, and suspended states — prove measurable savings
+- [ ] Profile suspend/resume timing with `pm_debug_messages`,
+  identify which drivers are slowest, optimize them
+- [ ] Write a device tree overlay that disables unused peripherals
+  (HDMI, eMMC when booting from SD, unused UARTs) to reduce idle power
+
+### 6. Custom Board Bring-Up (Design Your Own Cape)
+
+The ultimate embedded Linux skill: boot Linux on hardware you designed:
+
+- [ ] Design a BBB cape (add-on board) with a schematic — even a
+  simple one: I2C sensor + SPI DAC + GPIO LEDs + EEPROM
+- [ ] Write the EEPROM content so the BBB auto-detects the cape
+- [ ] Write the device tree overlay that describes your cape's hardware
+- [ ] Write Linux drivers for every device on the cape
+- [ ] Write a userspace library/tool that exercises all cape features
+- [ ] Document the whole process: schematic → DT → driver → userspace
+- [ ] Bonus: have the PCB fabricated (JLCPCB, ~$5 for 5 boards)
+
+### 7. Boot Time Optimization (Sub-2-Second Boot)
+
+Production devices must boot fast. This requires understanding every
+layer of the boot chain:
+
+- [ ] Measure current boot time: U-Boot + kernel + systemd-analyze
+- [ ] **U-Boot optimization**: skip boot delay, skip unnecessary
+  device init, use Falcon Mode (skip U-Boot entirely on normal boot,
+  load kernel directly from SPL)
+- [ ] **Kernel optimization**: trim unused drivers to built-in, use
+  `CONFIG_LTO_CLANG=y` (link-time optimization), defer non-critical
+  initcalls, tune `initcall_debug` output
+- [ ] **Initramfs optimization**: minimal init that mounts rootfs and
+  exec's systemd, no unnecessary modules
+- [ ] **systemd optimization**: disable unused units, use
+  `systemd-analyze critical-chain` to find bottlenecks, parallelize
+  everything possible
+- [ ] **Filesystem optimization**: use a read-only squashfs rootfs
+  with overlayfs for writable data — faster mount, smaller image
+- [ ] Target: < 2 seconds from power-on to shell prompt
+- [ ] Write a labgrid test that measures boot time and fails on
+  regression
+
+### 8. Secure Boot Chain
+
+Security is non-negotiable for production. Build a chain of trust from
+ROM to userspace:
+
+- [ ] **U-Boot verified boot**: sign the kernel FIT image with a
+  private key, embed the public key in U-Boot. U-Boot refuses to boot
+  an unsigned or tampered kernel.
+- [ ] **dm-verity rootfs**: generate a read-only rootfs with a hash
+  tree. Kernel verifies every block on read — any tampering causes
+  I/O errors. Integrate with RAUC for verified OTA.
+- [ ] **Hardware-backed keys**: use the AM335x's on-chip eFuse OTP
+  for storing key hashes (note: one-time programmable, be careful)
+- [ ] **Encrypted rootfs**: dm-crypt + LUKS for data partition. Store
+  key in eFuse or TPM (if using a cape with TPM chip).
+- [ ] **Secure OTA**: RAUC already signs bundles — add certificate
+  pinning, TLS for the download, rollback protection (monotonic
+  version counter in eFuse or persistent storage)
+- [ ] Document the full chain: ROM → SPL → U-Boot → kernel → rootfs
+
+### 9. Kernel Debugging Mastery
+
+Go beyond `printk`. These are the tools senior kernel engineers use:
+
+- [ ] **KGDB over serial**: set up a live kernel debugging session
+  from the host. Set breakpoints in a running kernel, inspect
+  variables, step through interrupt handlers.
+- [ ] **ftrace deep dive**: write custom trace events in your driver
+  using `TRACE_EVENT()` macro. Use `trace-cmd` to visualize function
+  call graphs and find latency bottlenecks.
+- [ ] **eBPF/bpftrace on ARM**: write BPF programs that attach to
+  kernel functions. Profile syscall latency, trace block I/O, monitor
+  scheduler behavior — all without modifying the kernel.
+- [ ] **kprobes/kretprobes**: dynamically instrument any kernel
+  function without recompiling. Write a kprobe module that logs
+  arguments to a specific driver function.
+- [ ] **crashdump analysis**: intentionally trigger a kernel panic
+  (via SysRq or null-pointer dereference in a test module). Capture
+  the log via pstore/ramoops, analyze the stack trace, find root cause.
+- [ ] **UBSAN/KASAN live debugging**: enable sanitizers, trigger a
+  real bug (buffer overflow, use-after-free in a test module),
+  interpret the sanitizer report, fix it.
+
+### 10. Build Your Own Linux Distribution
+
+You've been using Buildroot. Go deeper — understand what Buildroot
+abstracts away:
+
+- [ ] **Cross-compile a kernel manually**: no build system — just
+  `make ARCH=arm CROSS_COMPILE=arm-linux-gnueabihf- zImage modules dtbs`.
+  Understand every step.
+- [ ] **Build a rootfs from scratch**: create a minimal rootfs by
+  hand — busybox + libc + init script. Boot it. Then add systemd.
+  Understand what Buildroot's skeleton does.
+- [ ] **Write a Buildroot package**: package your own driver or tool
+  as a proper Buildroot `package/mypackage/` with `.mk` and `Config.in`.
+  Follow the Buildroot coding style. Submit it upstream if it's useful.
+- [ ] **Try Yocto/OE**: build the same BBB image with Yocto. Understand
+  the difference: recipes vs packages, layers vs external trees,
+  bitbake vs make. Form your own opinion on Buildroot vs Yocto.
+- [ ] **Build with musl instead of glibc**: switch `BR2_TOOLCHAIN_*`
+  to musl. Fix the breakage. Understand the tradeoffs (size vs
+  compatibility).
+
+### 11. Networking Stack Deep Dive
+
+Networking is the most complex subsystem in Linux. Master it:
+
+- [ ] **Write a netfilter kernel module**: implement a custom iptables
+  match or target. Understand the hook points (PREROUTING, INPUT,
+  FORWARD, OUTPUT, POSTROUTING).
+- [ ] **Bridge + VLAN**: set up the BBB as a transparent Ethernet
+  bridge with VLAN tagging. Understand `switchdev` if using the
+  AM335x dual-Ethernet variant (AM335x has a built-in 3-port switch).
+- [ ] **AF_PACKET raw sockets**: write a userspace program that sends
+  and receives raw Ethernet frames. Implement a simple custom
+  protocol between two BBBs.
+- [ ] **Network performance tuning**: benchmark TCP throughput with
+  `iperf3`, tune ring buffers (`ethtool -G`), interrupt coalescing,
+  TCP window size. Understand where the bottleneck is on a 100 Mbps
+  Cortex-A8.
+- [ ] **CAN bus stack**: if you have a CAN transceiver cape, write a
+  CAN application using `SocketCAN`. Implement a real protocol
+  (CANopen or J1939) — this is bread-and-butter in automotive.
+
+### 12. Filesystem & Storage Internals
+
+- [ ] **Write a simple filesystem kernel module**: even a trivial
+  read-only filesystem that serves files from a flat binary blob.
+  Understand `super_operations`, `inode_operations`, `file_operations`,
+  VFS layer.
+- [ ] **UBIFS/MTD on NAND**: the AM335x can boot from raw NAND. Set up
+  MTD partitions, format with UBIFS, understand wear leveling and
+  ECC. Different world from eMMC/SD block devices.
+- [ ] **Overlayfs for A/B rootfs**: instead of two full rootfs copies,
+  use a shared read-only base + per-slot overlay. Halve the flash
+  usage for OTA.
+- [ ] **F2FS or EROFS**: experiment with flash-friendly filesystems.
+  Benchmark random write performance vs ext4 on eMMC. Understand
+  why Android uses F2FS.
+
+### 13. Virtualization & Containers on Embedded
+
+- [ ] **Run containers on BBB**: set up `podman` (rootless) or a
+  minimal container runtime. Understand cgroups v2, namespaces, and
+  seccomp on ARM. Package your application as a container.
+- [ ] **Microkernel comparison**: run Zephyr RTOS on the PRU while
+  Linux runs on the ARM core. Or run a bare-metal PRU application
+  alongside Linux. Understand the tradeoffs of symmetric vs
+  asymmetric multiprocessing.
+
+### 14. Production Hardening
+
+Make your BBB image production-ready, not just a dev toy:
+
+- [ ] **Read-only rootfs**: mount rootfs as read-only, use overlayfs
+  or tmpfs for runtime state. Survives power cuts without corruption.
+- [ ] **Watchdog integration**: hardware watchdog + software health
+  checks. If your application hangs, the board reboots automatically.
+  (Partially done — extend with application-level health checks.)
+- [ ] **Factory provisioning script**: one-time setup that writes
+  unique device ID, certificates, and config to the data partition.
+  Every device is unique after provisioning.
+- [ ] **Automatic crash reporting**: on panic or application crash,
+  collect pstore logs + coredump + system state, store on data
+  partition. On next boot, upload to a server (or USB stick).
+- [ ] **Field OTA update server**: set up a simple HTTPS server that
+  hosts RAUC bundles. Write a systemd timer on the BBB that polls
+  for updates, downloads, verifies, and installs. Full end-to-end
+  OTA pipeline.
+- [ ] **Reproducible builds**: `BR2_REPRODUCIBLE=y` — verify that
+  two builds from the same source produce bit-identical images.
+  Required for security audits and compliance.
+
+### 15. Contribute to Buildroot or U-Boot Upstream
+
+Like kernel patches, but for the tools you use daily:
+
+- [ ] **Buildroot**: fix a package bug, add a new package, improve
+  board support. Buildroot has a welcoming community and fast review.
+- [ ] **U-Boot**: fix an AM335x-specific issue, add a feature to the
+  BBB board file, improve boot performance. U-Boot's codebase is
+  smaller and more approachable than the kernel.
+
+---
+

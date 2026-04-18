@@ -2,6 +2,10 @@
 
 All notable changes to this project will be documented in this file.
 
+## [Unreleased]
+
+- Extend TODO.md with "Level Up" roadmap — 15 advanced embedded Linux goals (upstream kernel patches, platform drivers, PREEMPT_RT, PRU programming, secure boot, boot time optimization, etc.) plus a suggested progression
+
 ## [1.1] - 2026-04-18
 
 Kernel development workflow release — initramfs with recovery shell, hardware watchdog auto-recovery, TFTP/NFS zero-flash boot, user-level board config, and fast kernel/module deploy paths.
